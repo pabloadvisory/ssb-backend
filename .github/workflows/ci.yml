@@ -28,8 +28,8 @@ jobs:
     env:
       SSB_TEST_DATABASE_URL: postgres://ssb:ssb@localhost:5432/ssb_test?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache: true
