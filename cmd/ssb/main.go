@@ -201,6 +201,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 		return nil
 	})
 	footballService := service.NewFootball(repository)
+	newsService := service.NewNews(repository)
 	notificationService := service.NewNotifications(repository)
 	clientIPs, err := httpx.NewClientIPResolver(cfg.HTTP.TrustedProxyCIDRs)
 	if err != nil {
@@ -216,7 +217,7 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			cfg.HTTP.RealtimeConnectionsPerIP, cfg.HTTP.AbuseTrackedIPLimit,
 		),
 	}
-	api := httpapi.New(footballService, notificationService, pool, hub, logger, metrics, cfg.IngestKey, abuse)
+	api := httpapi.New(footballService, newsService, notificationService, pool, hub, logger, metrics, cfg.IngestKey, cfg.EditorialKey, abuse)
 	server := &http.Server{
 		Addr:              cfg.HTTP.Address,
 		Handler:           api.Handler(),
