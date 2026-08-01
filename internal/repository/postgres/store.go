@@ -31,24 +31,33 @@ type scanner interface {
 
 func scanLeague(row scanner) (football.League, error) {
 	var league football.League
-	err := row.Scan(&league.ID, &league.Name, &league.Slug, &league.Type, &league.Gender, &league.CountryCode, &league.LogoURL, &league.CreatedAt, &league.UpdatedAt)
+	err := row.Scan(
+		&league.ID, &league.Name, &league.Slug, &league.Type, &league.Gender,
+		&league.CountryCode, &league.LogoURL, &league.CurrentSeasonID,
+		&league.CreatedAt, &league.UpdatedAt,
+	)
 	return league, mapError(err)
 }
 
 func (store *Store) ListLeagues(ctx context.Context, filter football.LeagueFilter) ([]football.League, error) {
 	query := strings.Builder{}
-	query.WriteString(`SELECT id, name, slug, type, gender, country_code, logo_url, created_at, updated_at FROM leagues WHERE true`)
+	query.WriteString(`SELECT league.id, league.name, league.slug, league.type, league.gender,
+		league.country_code, league.logo_url, current_season.id, league.created_at, league.updated_at
+		FROM leagues league
+		LEFT JOIN seasons current_season
+			ON current_season.league_id = league.id AND current_season.is_current
+		WHERE true`)
 	args := make([]any, 0, 4)
 	if filter.CountryCode != "" {
 		args = append(args, strings.ToUpper(filter.CountryCode))
-		fmt.Fprintf(&query, " AND country_code = $%d", len(args))
+		fmt.Fprintf(&query, " AND league.country_code = $%d", len(args))
 	}
 	if filter.AfterID != "" {
 		args = append(args, filter.AfterName, filter.AfterID)
-		fmt.Fprintf(&query, " AND (name, id) > ($%d, $%d::uuid)", len(args)-1, len(args))
+		fmt.Fprintf(&query, " AND (league.name, league.id) > ($%d, $%d::uuid)", len(args)-1, len(args))
 	}
 	args = append(args, filter.Limit)
-	fmt.Fprintf(&query, " ORDER BY name, id LIMIT $%d", len(args))
+	fmt.Fprintf(&query, " ORDER BY league.name, league.id LIMIT $%d", len(args))
 
 	rows, err := store.pool.Query(ctx, query.String(), args...)
 	if err != nil {
@@ -68,7 +77,42 @@ func (store *Store) ListLeagues(ctx context.Context, filter football.LeagueFilte
 }
 
 func (store *Store) GetLeague(ctx context.Context, id string) (football.League, error) {
-	return scanLeague(store.pool.QueryRow(ctx, `SELECT id, name, slug, type, gender, country_code, logo_url, created_at, updated_at FROM leagues WHERE id = $1`, id))
+	return scanLeague(store.pool.QueryRow(ctx, `
+		SELECT league.id, league.name, league.slug, league.type, league.gender,
+			league.country_code, league.logo_url, current_season.id,
+			league.created_at, league.updated_at
+		FROM leagues league
+		LEFT JOIN seasons current_season
+			ON current_season.league_id = league.id AND current_season.is_current
+		WHERE league.id = $1`, id))
+}
+
+func (store *Store) ListLeagueSeasons(ctx context.Context, leagueID string) (football.LeagueSeasons, error) {
+	var canonicalID string
+	if err := store.pool.QueryRow(ctx, `SELECT id FROM leagues WHERE id = $1`, leagueID).Scan(&canonicalID); err != nil {
+		return football.LeagueSeasons{}, mapError(err)
+	}
+	result := football.LeagueSeasons{LeagueID: canonicalID, Data: []football.Season{}}
+	rows, err := store.pool.Query(ctx, `
+		SELECT id, league_id, name, starts_on, ends_on, is_current, created_at, updated_at
+		FROM seasons
+		WHERE league_id = $1
+		ORDER BY is_current DESC, starts_on DESC, ends_on DESC, id`, canonicalID)
+	if err != nil {
+		return football.LeagueSeasons{}, mapError(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var season football.Season
+		if err := rows.Scan(
+			&season.ID, &season.LeagueID, &season.Name, &season.StartsOn, &season.EndsOn,
+			&season.IsCurrent, &season.CreatedAt, &season.UpdatedAt,
+		); err != nil {
+			return football.LeagueSeasons{}, mapError(err)
+		}
+		result.Data = append(result.Data, season)
+	}
+	return result, mapError(rows.Err())
 }
 
 func (store *Store) GetTeam(ctx context.Context, id string) (football.Team, error) {
@@ -76,13 +120,21 @@ func (store *Store) GetTeam(ctx context.Context, id string) (football.Team, erro
 	var venueJSON []byte
 	err := store.pool.QueryRow(ctx, `
 		SELECT t.id, t.name, t.short_name, t.code, t.country_code, t.founded_year, t.logo_url,
+			t.primary_color, t.secondary_color,
 			CASE WHEN v.id IS NULL THEN NULL ELSE jsonb_build_object(
-				'id', v.id, 'name', v.name, 'city', v.city, 'capacity', v.capacity, 'image_url', v.image_url,
-				'timezone', v.timezone
+				'id', v.id, 'name', v.name, 'city', v.city, 'country_code', v.country_code,
+				'country_name', country.name, 'address', v.address, 'latitude', v.latitude,
+				'longitude', v.longitude, 'capacity', v.capacity, 'surface', v.surface,
+				'image_url', v.image_url, 'timezone', v.timezone,
+				'created_at', v.created_at, 'updated_at', v.updated_at
 			) END,
 			t.created_at, t.updated_at
-		FROM teams t LEFT JOIN venues v ON v.id = t.venue_id WHERE t.id = $1`, id).Scan(
+		FROM teams t
+		LEFT JOIN venues v ON v.id = t.venue_id
+		LEFT JOIN countries country ON country.code = v.country_code
+		WHERE t.id = $1`, id).Scan(
 		&team.ID, &team.Name, &team.ShortName, &team.Code, &team.CountryCode, &team.FoundedYear, &team.LogoURL,
+		&team.PrimaryColor, &team.SecondaryColor,
 		&venueJSON, &team.CreatedAt, &team.UpdatedAt,
 	)
 	if err != nil {
