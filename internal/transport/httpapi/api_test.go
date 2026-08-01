@@ -14,6 +14,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/pabloadvisory/ssb-backend/internal/domain/football"
+	"github.com/pabloadvisory/ssb-backend/internal/domain/news"
 	"github.com/pabloadvisory/ssb-backend/internal/observability"
 	"github.com/pabloadvisory/ssb-backend/internal/platform/httpx"
 	"github.com/pabloadvisory/ssb-backend/internal/realtime"
@@ -67,6 +68,26 @@ type healthyDatabase struct{}
 
 func (healthyDatabase) Ping(context.Context) error { return nil }
 
+type fakeNewsStore struct {
+	articles []news.ArticleSummary
+	article  news.Article
+}
+
+func (store *fakeNewsStore) ListPublishedArticles(context.Context, news.Filter) ([]news.ArticleSummary, error) {
+	return store.articles, nil
+}
+
+func (store *fakeNewsStore) GetPublishedArticleBySlug(context.Context, string) (news.Article, error) {
+	if store.article.ID == "" {
+		return news.Article{}, news.ErrNotFound
+	}
+	return store.article, nil
+}
+
+func (store *fakeNewsStore) UpsertArticle(context.Context, string, string, news.UpsertArticle) (news.Article, error) {
+	return store.article, nil
+}
+
 func testHandler(store *fakeStore, ingestKey string) http.Handler {
 	clientIPs, err := httpx.NewClientIPResolver(nil)
 	if err != nil {
@@ -81,7 +102,10 @@ func testHandler(store *fakeStore, ingestKey string) http.Handler {
 
 func testHandlerWithAbuse(store *fakeStore, ingestKey string, abuse AbuseControls) http.Handler {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	return New(service.NewFootball(store), nil, healthyDatabase{}, realtime.NewHub(), logger, observability.NopMetrics{}, ingestKey, abuse).Handler()
+	return New(
+		service.NewFootball(store), service.NewNews(&fakeNewsStore{}), nil,
+		healthyDatabase{}, realtime.NewHub(), logger, observability.NopMetrics{}, ingestKey, "editorial-secret", abuse,
+	).Handler()
 }
 
 func TestLivenessIncludesRequestID(t *testing.T) {
@@ -143,12 +167,53 @@ func TestLeagueListReturnsOpaqueNextCursor(t *testing.T) {
 	}
 }
 
+func TestNewsListReturnsSummaryPageWithOpaqueCursor(t *testing.T) {
+	t.Parallel()
+
+	publishedAt := time.Now().UTC()
+	newsStore := &fakeNewsStore{articles: []news.ArticleSummary{
+		{ID: "00000000-0000-0000-0000-000000000002", Slug: "latest", Title: "Latest", PublishedAt: &publishedAt},
+		{ID: "00000000-0000-0000-0000-000000000001", Slug: "earlier", Title: "Earlier", PublishedAt: &publishedAt},
+	}}
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	handler := New(
+		service.NewFootball(&fakeStore{}), service.NewNews(newsStore), nil,
+		healthyDatabase{}, realtime.NewHub(), logger, observability.NopMetrics{}, "secret", "editorial-secret", AbuseControls{},
+	).Handler()
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/news?limit=1", nil))
+
+	var body struct {
+		Data []news.ArticleSummary `json:"data"`
+		Page pageInfo              `json:"page"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if response.Code != http.StatusOK || len(body.Data) != 1 || !body.Page.HasMore || body.Page.NextCursor == "" {
+		t.Fatalf("unexpected news page: status=%d body=%+v", response.Code, body)
+	}
+}
+
 func TestIngestRequiresBearerToken(t *testing.T) {
 	t.Parallel()
 
 	request := httptest.NewRequest(http.MethodPut, "/v1/internal/matches/provider/42", nil)
 	response := httptest.NewRecorder()
 	testHandler(&fakeStore{}, "expected-secret").ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", response.Code)
+	}
+}
+
+func TestEditorialUpsertRequiresSeparateBearerToken(t *testing.T) {
+	t.Parallel()
+
+	request := httptest.NewRequest(http.MethodPut, "/v1/internal/news/cms/42", nil)
+	request.Header.Set("Authorization", "Bearer secret")
+	response := httptest.NewRecorder()
+	testHandler(&fakeStore{}, "secret").ServeHTTP(response, request)
 
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", response.Code)
@@ -249,7 +314,10 @@ func TestMatchWebSocketDoesNotLoseUpdateDuringSnapshotRead(t *testing.T) {
 		hub.Publish(realtime.Update{MatchID: "match-1", Type: "match.updated", Version: 8})
 	}
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	handler := New(service.NewFootball(store), nil, healthyDatabase{}, hub, logger, observability.NopMetrics{}, "secret", AbuseControls{}).Handler()
+	handler := New(
+		service.NewFootball(store), service.NewNews(&fakeNewsStore{}), nil,
+		healthyDatabase{}, hub, logger, observability.NopMetrics{}, "secret", "editorial-secret", AbuseControls{},
+	).Handler()
 	server := httptest.NewServer(handler)
 	defer server.Close()
 

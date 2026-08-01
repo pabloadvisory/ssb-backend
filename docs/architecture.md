@@ -51,6 +51,9 @@ flowchart LR
     Queue --> QueueHealth
     Clients["REST clients"] --> ReadAPI["Public read API"]
     ReadAPI --> Core
+    CMS["Editorial CMS"] --> EditorialAPI["Authenticated news upsert API"]
+    EditorialAPI --> News["Draft, scheduled, and published articles"]
+    News --> ReadAPI
 ```
 
 Provider-specific clients do not belong in the domain or HTTP transport. They should translate upstream payloads into normalized ingest commands, retain raw payloads in cheap object storage when replay/audit is needed, and record provider cursors in `ingestion_cursors`.
@@ -58,6 +61,7 @@ Provider-specific clients do not belong in the domain or HTTP transport. They sh
 ## Boundaries
 
 - `internal/domain/football`: normalized types, filters, commands, validation, and repository contracts.
+- `internal/domain/news`: editorial article types, public-feed filters, publication states, and repository contracts.
 - `internal/service`: use cases and policy; no HTTP or SQL knowledge.
 - `internal/repository/postgres`: SQL and transaction implementation.
 - `internal/transport/httpapi`: JSON contracts, routing, middleware, SSE.
@@ -82,7 +86,7 @@ Provider-specific clients do not belong in the domain or HTTP transport. They sh
 
 1. Add a provider adapter and catalog ingestion commands for leagues, seasons, teams, people, rosters, and fixtures.
 2. Generate an OpenAPI 3.1 contract and SDK fixtures once mobile/web client requirements settle.
-3. Add authentication/authorization for editorial and administrative writes; the current key is intentionally machine-ingestion-only.
+3. Replace the separate editorial API key with staff identity, role-based authorization, and an audit trail when a first-party CMS is introduced.
 4. Add a Prometheus or OpenTelemetry implementation of the existing metrics interface with explicit cardinality budgets and service-level objectives.
 5. Add standings projection, lineup ingestion, data-quality reconciliation, and correction/replay workflows.
 6. Add ActivityKit broadcast channels for large iOS audiences and evaluate FCM topics only where their latency profile fits.

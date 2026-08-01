@@ -36,6 +36,7 @@ services:
       SSB_DATABASE_MIN_CONNS: 2
       SSB_DATABASE_MAX_CONNS: 20
       SSB_INGEST_API_KEY: ${SSB_INGEST_API_KEY:-local-development-key}
+      SSB_EDITORIAL_API_KEY: ${SSB_EDITORIAL_API_KEY:-local-editorial-key}
     ports:
       - "8080:8080"
     depends_on:

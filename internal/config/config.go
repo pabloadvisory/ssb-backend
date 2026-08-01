@@ -17,6 +17,7 @@ type Config struct {
 	HTTP          HTTP
 	Database      Database
 	IngestKey     string
+	EditorialKey  string
 	Push          Push
 	Outbox        Outbox
 	Maintenance   Maintenance
@@ -91,6 +92,7 @@ func Load(command string) (Config, error) {
 	cfg.HTTP.Address = env("SSB_HTTP_ADDR", ":8080")
 	cfg.Database.URL = strings.TrimSpace(os.Getenv("SSB_DATABASE_URL"))
 	cfg.IngestKey = os.Getenv("SSB_INGEST_API_KEY")
+	cfg.EditorialKey = os.Getenv("SSB_EDITORIAL_API_KEY")
 	cfg.Push.APNs.KeyPath = strings.TrimSpace(os.Getenv("SSB_APNS_KEY_PATH"))
 	cfg.Push.APNs.KeyID = strings.TrimSpace(os.Getenv("SSB_APNS_KEY_ID"))
 	cfg.Push.APNs.TeamID = strings.TrimSpace(os.Getenv("SSB_APNS_TEAM_ID"))
@@ -164,6 +166,9 @@ func Load(command string) (Config, error) {
 	}
 	if command == "serve" && cfg.Environment == "production" && len(cfg.IngestKey) < 32 {
 		errs = append(errs, errors.New("SSB_INGEST_API_KEY must contain at least 32 characters in production"))
+	}
+	if command == "serve" && cfg.Environment == "production" && cfg.EditorialKey != "" && len(cfg.EditorialKey) < 32 {
+		errs = append(errs, errors.New("SSB_EDITORIAL_API_KEY must contain at least 32 characters when configured in production"))
 	}
 	apnsValues := []string{cfg.Push.APNs.KeyPath, cfg.Push.APNs.KeyID, cfg.Push.APNs.TeamID}
 	apnsConfigured := 0

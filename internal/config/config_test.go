@@ -30,6 +30,18 @@ func TestProductionRequiresStrongIngestKey(t *testing.T) {
 	}
 }
 
+func TestProductionRejectsWeakConfiguredEditorialKey(t *testing.T) {
+	t.Setenv("SSB_ENV", "production")
+	t.Setenv("SSB_DATABASE_URL", "postgres://example")
+	t.Setenv("SSB_INGEST_API_KEY", "a-production-ingest-key-that-is-long-enough")
+	t.Setenv("SSB_EDITORIAL_API_KEY", "short")
+
+	_, err := Load("serve")
+	if err == nil {
+		t.Fatal("expected a short configured production editorial key to fail")
+	}
+}
+
 func TestLoadRejectsInvalidTrustedProxyCIDR(t *testing.T) {
 	t.Setenv("SSB_DATABASE_URL", "")
 	t.Setenv("SSB_TRUSTED_PROXY_CIDRS", "not-a-network")

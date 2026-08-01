@@ -219,3 +219,51 @@ VALUES
     ('match_event', '41000000-0000-0000-0000-000000000004', 'demo', 'finished-full-time')
 ON CONFLICT (provider, entity_type, external_id) DO UPDATE SET
     entity_id = EXCLUDED.entity_id, updated_at = now();
+
+INSERT INTO news_articles (
+    id, source, external_id, slug, title, summary, body_markdown,
+    hero_image_url, hero_image_alt, author_name, category, featured,
+    related_league_id, related_team_id, related_match_id, status,
+    published_at, source_hash
+)
+VALUES
+    (
+        '50000000-0000-0000-0000-000000000001', 'demo', 'victoria-mahe-report',
+        'victoria-edge-mahe-in-demo-opener', 'Victoria edge Mahé in demo opener',
+        'Victoria United took all three points after a disciplined second-half performance against Mahé City.',
+        E'## Victoria make the perfect start\n\nVictoria United opened the demo season with a narrow win over Mahé City. The match report is linked to the fixture so clients can offer a direct route back to match details.\n\n### At a glance\n\n- Victoria United 1–0 Mahé City\n- Winning goal: 34th minute\n- Venue: Demo National Stadium',
+        NULL, NULL,
+        'SSB Newsroom', 'match_report', true,
+        '10000000-0000-0000-0000-000000000001',
+        '20000000-0000-0000-0000-000000000001',
+        '40000000-0000-0000-0000-000000000001',
+        'published', '2026-08-01T10:00:00Z', digest('demo-news-victoria-mahe-v1', 'sha256')
+    ),
+    (
+        '50000000-0000-0000-0000-000000000002', 'demo', 'weekend-preview',
+        'weekend-football-preview', 'Weekend football preview',
+        'Four clubs return to action across the Seychelles Demo Premier League this weekend.',
+        E'## This weekend in the Demo Premier League\n\nThe next round brings two fixtures and plenty to watch, with Victoria United looking to protect their early lead. Follow SeySoccer for live scores and match events.',
+        NULL, NULL, 'SSB Newsroom', 'story', false,
+        '10000000-0000-0000-0000-000000000001', NULL, NULL,
+        'published', '2026-07-31T09:00:00Z', digest('demo-news-weekend-preview-v1', 'sha256')
+    ),
+    (
+        '50000000-0000-0000-0000-000000000003', 'demo', 'transfer-draft',
+        'transfer-window-notes', 'Transfer window notes',
+        'Editorial notes for a future transfer-window announcement.',
+        'This draft must never appear in the public feed.',
+        NULL, NULL, 'SSB Newsroom', 'announcement', false,
+        NULL, NULL, NULL, 'draft', NULL, digest('demo-news-transfer-draft-v1', 'sha256')
+    )
+ON CONFLICT (source, external_id) DO UPDATE SET
+    slug = EXCLUDED.slug, title = EXCLUDED.title, summary = EXCLUDED.summary,
+    body_markdown = EXCLUDED.body_markdown, hero_image_url = EXCLUDED.hero_image_url,
+    hero_image_alt = EXCLUDED.hero_image_alt, author_name = EXCLUDED.author_name,
+    category = EXCLUDED.category, featured = EXCLUDED.featured,
+    related_league_id = EXCLUDED.related_league_id,
+    related_team_id = EXCLUDED.related_team_id,
+    related_match_id = EXCLUDED.related_match_id, status = EXCLUDED.status,
+    published_at = EXCLUDED.published_at, source_hash = EXCLUDED.source_hash,
+    updated_at = now()
+WHERE news_articles.source_hash IS DISTINCT FROM EXCLUDED.source_hash;

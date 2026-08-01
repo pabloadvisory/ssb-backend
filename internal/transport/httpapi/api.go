@@ -16,6 +16,7 @@ import (
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
 	"github.com/pabloadvisory/ssb-backend/internal/domain/football"
+	"github.com/pabloadvisory/ssb-backend/internal/domain/news"
 	"github.com/pabloadvisory/ssb-backend/internal/notification"
 	"github.com/pabloadvisory/ssb-backend/internal/observability"
 	"github.com/pabloadvisory/ssb-backend/internal/platform/httpx"
@@ -29,11 +30,13 @@ type databasePinger interface {
 
 type API struct {
 	football      *service.Football
+	news          *service.News
 	notifications *service.Notifications
 	database      databasePinger
 	hub           *realtime.Hub
 	logger        *slog.Logger
 	ingestKey     string
+	editorialKey  string
 	abuse         AbuseControls
 	metrics       observability.Metrics
 }
@@ -44,7 +47,7 @@ type AbuseControls struct {
 	RealtimeConnections *httpx.ConnectionLimiter
 }
 
-func New(footballService *service.Football, notificationService *service.Notifications, database databasePinger, hub *realtime.Hub, logger *slog.Logger, metrics observability.Metrics, ingestKey string, abuse AbuseControls) *API {
+func New(footballService *service.Football, newsService *service.News, notificationService *service.Notifications, database databasePinger, hub *realtime.Hub, logger *slog.Logger, metrics observability.Metrics, ingestKey, editorialKey string, abuse AbuseControls) *API {
 	if metrics == nil {
 		metrics = observability.NopMetrics{}
 	}
@@ -58,8 +61,8 @@ func New(footballService *service.Football, notificationService *service.Notific
 		abuse.RealtimeConnections = httpx.NewConnectionLimiter(20, 100_000)
 	}
 	return &API{
-		football: footballService, notifications: notificationService, database: database,
-		hub: hub, logger: logger, ingestKey: ingestKey, abuse: abuse, metrics: metrics,
+		football: footballService, news: newsService, notifications: notificationService, database: database,
+		hub: hub, logger: logger, ingestKey: ingestKey, editorialKey: editorialKey, abuse: abuse, metrics: metrics,
 	}
 }
 
@@ -77,10 +80,13 @@ func (api *API) Handler() http.Handler {
 	router.HandleFunc("GET /v1/matches/{id}/events", api.listMatchEvents)
 	router.HandleFunc("GET /v1/matches/{id}/stream", api.streamMatch)
 	router.HandleFunc("GET /v1/matches/{id}/ws", api.websocketMatch)
+	router.HandleFunc("GET /v1/news", api.listNews)
+	router.HandleFunc("GET /v1/news/{slug}", api.getNewsArticle)
 	router.HandleFunc("POST /v1/installations", api.createInstallation)
 	router.HandleFunc("PUT /v1/installations/{id}/push-endpoints/{kind}", api.registerPushEndpoint)
 	router.HandleFunc("PUT /v1/installations/{id}/matches/{match_id}", api.setMatchSubscription)
 	router.Handle("PUT /v1/internal/matches/{provider}/{external_id}", api.requireIngestAuth(http.HandlerFunc(api.upsertMatch)))
+	router.Handle("PUT /v1/internal/news/{source}/{external_id}", api.requireEditorialAuth(http.HandlerFunc(api.upsertNewsArticle)))
 
 	return httpx.Chain(router,
 		httpx.RequestID,
@@ -210,6 +216,62 @@ func (api *API) listMatches(writer http.ResponseWriter, request *http.Request) {
 
 func (api *API) getMatch(writer http.ResponseWriter, request *http.Request) {
 	value, err := api.football.GetMatch(request.Context(), request.PathValue("id"))
+	api.writeResult(writer, request, value, err)
+}
+
+func (api *API) listNews(writer http.ResponseWriter, request *http.Request) {
+	query := request.URL.Query()
+	limit, err := parseLimit(query.Get("limit"), 20, 100)
+	if err != nil {
+		api.badRequest(writer, request, err)
+		return
+	}
+	filter := news.Filter{
+		Category: news.Category(query.Get("category")),
+		LeagueID: query.Get("league_id"),
+		TeamID:   query.Get("team_id"),
+		MatchID:  query.Get("match_id"),
+		Limit:    limit + 1,
+	}
+	if raw := query.Get("featured"); raw != "" {
+		featured, err := strconv.ParseBool(raw)
+		if err != nil {
+			api.badRequest(writer, request, errors.New("featured must be true or false"))
+			return
+		}
+		filter.Featured = &featured
+	}
+	if raw := query.Get("cursor"); raw != "" {
+		var cursor newsCursor
+		if err := decodeCursor(raw, &cursor); err != nil || cursor.ID == "" || cursor.PublishedAt.IsZero() {
+			api.badRequest(writer, request, errors.New("cursor is invalid"))
+			return
+		}
+		filter.BeforePublishedAt, filter.BeforeID = &cursor.PublishedAt, cursor.ID
+	}
+	articles, err := api.news.ListPublishedArticles(request.Context(), filter)
+	if err != nil {
+		api.handleError(writer, request, err)
+		return
+	}
+	response := page[news.ArticleSummary]{Data: articles, Page: pageInfo{}}
+	if len(articles) > limit {
+		response.Data = articles[:limit]
+		last := response.Data[len(response.Data)-1]
+		if last.PublishedAt == nil {
+			api.handleError(writer, request, errors.New("published news article has no publication time"))
+			return
+		}
+		response.Page = pageInfo{
+			HasMore:    true,
+			NextCursor: encodeCursor(newsCursor{PublishedAt: *last.PublishedAt, ID: last.ID}),
+		}
+	}
+	api.writeCacheable(writer, request, response)
+}
+
+func (api *API) getNewsArticle(writer http.ResponseWriter, request *http.Request) {
+	value, err := api.news.GetPublishedArticleBySlug(request.Context(), request.PathValue("slug"))
 	api.writeResult(writer, request, value, err)
 }
 
@@ -389,6 +451,28 @@ func (api *API) upsertMatch(writer http.ResponseWriter, request *http.Request) {
 	httpx.WriteJSON(writer, http.StatusOK, match)
 }
 
+func (api *API) upsertNewsArticle(writer http.ResponseWriter, request *http.Request) {
+	mediaType, _, err := mime.ParseMediaType(request.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		httpx.WriteError(writer, request, http.StatusUnsupportedMediaType, "unsupported_media_type", "Content-Type must be application/json")
+		return
+	}
+	var command news.UpsertArticle
+	if err := httpx.DecodeJSON(writer, request, &command, 512<<10); err != nil {
+		api.badRequest(writer, request, err)
+		return
+	}
+	article, err := api.news.UpsertArticle(
+		request.Context(), request.PathValue("source"), request.PathValue("external_id"), command,
+	)
+	if err != nil {
+		api.handleError(writer, request, err)
+		return
+	}
+	writer.Header().Set("ETag", fmt.Sprintf(`"%d"`, article.Version))
+	httpx.WriteJSON(writer, http.StatusOK, article)
+}
+
 func (api *API) createInstallation(writer http.ResponseWriter, request *http.Request) {
 	clientIP := httpx.ClientIPFromContext(request.Context())
 	if allowed, retryAfter := api.abuse.Installations.Allow(clientIP); !allowed {
@@ -482,15 +566,23 @@ func bearerCredential(request *http.Request) (string, bool) {
 }
 
 func (api *API) requireIngestAuth(next http.Handler) http.Handler {
+	return api.requireAPIKey(next, api.ingestKey, "ingestion_unavailable", "ingestion is not configured", "valid ingestion credentials are required")
+}
+
+func (api *API) requireEditorialAuth(next http.Handler) http.Handler {
+	return api.requireAPIKey(next, api.editorialKey, "editorial_unavailable", "editorial writes are not configured", "valid editorial credentials are required")
+}
+
+func (api *API) requireAPIKey(next http.Handler, key, unavailableCode, unavailableMessage, unauthorizedMessage string) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		if api.ingestKey == "" {
-			httpx.WriteError(writer, request, http.StatusServiceUnavailable, "ingestion_unavailable", "ingestion is not configured")
+		if key == "" {
+			httpx.WriteError(writer, request, http.StatusServiceUnavailable, unavailableCode, unavailableMessage)
 			return
 		}
 		provided := strings.TrimPrefix(request.Header.Get("Authorization"), "Bearer ")
-		if len(provided) != len(api.ingestKey) || subtle.ConstantTimeCompare([]byte(provided), []byte(api.ingestKey)) != 1 {
+		if len(provided) != len(key) || subtle.ConstantTimeCompare([]byte(provided), []byte(key)) != 1 {
 			writer.Header().Set("WWW-Authenticate", "Bearer")
-			httpx.WriteError(writer, request, http.StatusUnauthorized, "unauthorized", "valid ingestion credentials are required")
+			httpx.WriteError(writer, request, http.StatusUnauthorized, "unauthorized", unauthorizedMessage)
 			return
 		}
 		next.ServeHTTP(writer, request)
@@ -519,9 +611,15 @@ func (api *API) handleError(writer http.ResponseWriter, request *http.Request, e
 	switch {
 	case errors.Is(err, football.ErrNotFound):
 		httpx.WriteError(writer, request, http.StatusNotFound, "not_found", "resource was not found")
+	case errors.Is(err, news.ErrNotFound):
+		httpx.WriteError(writer, request, http.StatusNotFound, "not_found", "news article was not found")
 	case errors.Is(err, football.ErrInvalid):
 		httpx.WriteError(writer, request, http.StatusUnprocessableEntity, "validation_failed", err.Error())
+	case errors.Is(err, news.ErrInvalid):
+		httpx.WriteError(writer, request, http.StatusUnprocessableEntity, "validation_failed", err.Error())
 	case errors.Is(err, football.ErrConflict):
+		httpx.WriteError(writer, request, http.StatusConflict, "conflict", err.Error())
+	case errors.Is(err, news.ErrConflict):
 		httpx.WriteError(writer, request, http.StatusConflict, "conflict", err.Error())
 	case errors.Is(err, notification.ErrUnauthorized):
 		writer.Header().Set("WWW-Authenticate", "Bearer")

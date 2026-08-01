@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pabloadvisory/ssb-backend/internal/demo"
 	"github.com/pabloadvisory/ssb-backend/internal/domain/football"
+	"github.com/pabloadvisory/ssb-backend/internal/domain/news"
 	"github.com/pabloadvisory/ssb-backend/internal/eventing"
 	"github.com/pabloadvisory/ssb-backend/internal/notification"
 	postgresrepo "github.com/pabloadvisory/ssb-backend/internal/repository/postgres"
@@ -36,8 +37,8 @@ func TestPostgresIntegration(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 4 {
-		t.Fatalf("expected 4 forward migrations, got %d", migrationCount)
+	if migrationCount != 5 {
+		t.Fatalf("expected 5 forward migrations, got %d", migrationCount)
 	}
 	assertColumnAbsent(t, pool, "matches", "provider")
 	assertColumnAbsent(t, pool, "push_endpoints", "token")
@@ -46,6 +47,68 @@ func TestPostgresIntegration(t *testing.T) {
 		t.Fatalf("seed demo data: %v", err)
 	}
 	repository := postgresrepo.New(pool)
+
+	t.Run("news publication visibility and idempotency", func(t *testing.T) {
+		newsService := service.NewNews(repository)
+		seeded, err := newsService.ListPublishedArticles(ctx, news.Filter{Limit: 20})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(seeded) != 2 {
+			t.Fatalf("expected two published demo articles, got %d", len(seeded))
+		}
+		if _, err := newsService.GetPublishedArticleBySlug(ctx, "transfer-window-notes"); !errors.Is(err, news.ErrNotFound) {
+			t.Fatalf("draft article must not be public, got %v", err)
+		}
+
+		publishedAt := time.Now().UTC().Add(-time.Minute)
+		command := news.UpsertArticle{
+			Slug: "integration-news", Title: "Integration news", Summary: "Repository test article",
+			BodyMarkdown: "A published integration article.", Category: news.CategoryAnnouncement,
+			Status: news.StatusPublished, PublishedAt: &publishedAt,
+		}
+		created, err := newsService.UpsertArticle(ctx, "integration", "news-1", command)
+		if err != nil {
+			t.Fatal(err)
+		}
+		unchanged, err := newsService.UpsertArticle(ctx, "integration", "news-1", command)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if created.ID != unchanged.ID || created.Version != 1 || unchanged.Version != 1 {
+			t.Fatalf("unchanged editorial retries must preserve identity and version: created=%+v unchanged=%+v", created, unchanged)
+		}
+		command.Title = "Updated integration news"
+		updated, err := newsService.UpsertArticle(ctx, "integration", "news-1", command)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if updated.ID != created.ID || updated.Version != 2 {
+			t.Fatalf("changed article should preserve ID and increment version: %+v", updated)
+		}
+		command.Status = news.StatusArchived
+		archived, err := newsService.UpsertArticle(ctx, "integration", "news-1", command)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if archived.Version != 3 {
+			t.Fatalf("archived article should increment version: %+v", archived)
+		}
+		if _, err := newsService.GetPublishedArticleBySlug(ctx, command.Slug); !errors.Is(err, news.ErrNotFound) {
+			t.Fatalf("archived article must no longer be public, got %v", err)
+		}
+
+		future := time.Now().UTC().Add(time.Hour)
+		command.Slug = "scheduled-integration-news"
+		command.Status = news.StatusPublished
+		command.PublishedAt = &future
+		if _, err := newsService.UpsertArticle(ctx, "integration", "news-2", command); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := newsService.GetPublishedArticleBySlug(ctx, command.Slug); !errors.Is(err, news.ErrNotFound) {
+			t.Fatalf("scheduled article must stay hidden before publication, got %v", err)
+		}
+	})
 
 	t.Run("hash gated version and outbox ordering", func(t *testing.T) {
 		footballService := service.NewFootball(repository)
