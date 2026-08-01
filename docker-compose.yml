@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ssb
+      POSTGRES_USER: ssb
+      POSTGRES_PASSWORD: ssb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ssb -d ssb"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build: .
+    command: ["migrate", "up"]
+    environment:
+      SSB_ENV: development
+      SSB_DATABASE_URL: postgres://ssb:ssb@postgres:5432/ssb?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build: .
+    environment:
+      SSB_ENV: development
+      SSB_LOG_LEVEL: debug
+      SSB_HTTP_ADDR: :8080
+      SSB_DATABASE_URL: postgres://ssb:ssb@postgres:5432/ssb?sslmode=disable
+      SSB_DATABASE_MIN_CONNS: 2
+      SSB_DATABASE_MAX_CONNS: 20
+      SSB_INGEST_API_KEY: ${SSB_INGEST_API_KEY:-local-development-key}
+    ports:
+      - "8080:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "/ssb", "healthcheck", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    init: true
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      target: build
+    command: ["go", "test", "-race", "./..."]
+    environment:
+      SSB_TEST_DATABASE_URL: postgres://ssb:ssb@postgres:5432/ssb?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles: ["test"]
+
+volumes:
+  postgres-data:
