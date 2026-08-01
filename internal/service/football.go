@@ -26,6 +26,10 @@ func (service *Football) GetLeague(ctx context.Context, id string) (football.Lea
 	return service.store.GetLeague(ctx, id)
 }
 
+func (service *Football) ListLeagueSeasons(ctx context.Context, id string) (football.LeagueSeasons, error) {
+	return service.store.ListLeagueSeasons(ctx, id)
+}
+
 func (service *Football) GetTeam(ctx context.Context, id string) (football.Team, error) {
 	return service.store.GetTeam(ctx, id)
 }

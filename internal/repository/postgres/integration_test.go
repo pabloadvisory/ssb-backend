@@ -37,8 +37,8 @@ func TestPostgresIntegration(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 5 {
-		t.Fatalf("expected 5 forward migrations, got %d", migrationCount)
+	if migrationCount != 7 {
+		t.Fatalf("expected 7 forward migrations, got %d", migrationCount)
 	}
 	assertColumnAbsent(t, pool, "matches", "provider")
 	assertColumnAbsent(t, pool, "push_endpoints", "token")
@@ -47,6 +47,194 @@ func TestPostgresIntegration(t *testing.T) {
 		t.Fatalf("seed demo data: %v", err)
 	}
 	repository := postgresrepo.New(pool)
+
+	t.Run("public football coverage and discovery reads", func(t *testing.T) {
+		footballService := service.NewFootball(repository)
+		const liveMatchID = "40000000-0000-0000-0000-000000000001"
+		const leagueID = "10000000-0000-0000-0000-000000000001"
+		const seasonID = "10000000-0000-0000-0000-000000000002"
+		const venueID = "10000000-0000-0000-0000-000000000003"
+		const teamAID = "20000000-0000-0000-0000-000000000002"
+		const teamBID = "20000000-0000-0000-0000-000000000003"
+
+		league, err := footballService.GetLeague(ctx, leagueID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if league.CurrentSeasonID == nil || *league.CurrentSeasonID != seasonID {
+			t.Fatalf("league did not expose its current season: %+v", league)
+		}
+		seasons, err := footballService.ListLeagueSeasons(ctx, leagueID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(seasons.Data) != 1 || seasons.Data[0].ID != seasonID || !seasons.Data[0].IsCurrent {
+			t.Fatalf("unexpected league seasons: %+v", seasons)
+		}
+
+		lineups, err := footballService.GetMatchLineups(ctx, liveMatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if lineups.Home.Team.ID == "" || lineups.Away.Team.ID == "" ||
+			len(lineups.Home.Starters) != 11 || len(lineups.Home.Substitutes) != 7 ||
+			len(lineups.Away.Starters) != 11 || len(lineups.Away.Substitutes) != 7 {
+			t.Fatalf("unexpected seeded lineups: %+v", lineups)
+		}
+		if lineups.Home.Coach == nil || lineups.Home.Coach.DisplayName == "" ||
+			lineups.Away.Coach == nil || lineups.Away.Coach.DisplayName == "" {
+			t.Fatalf("both seeded lineups must include managers: %+v", lineups)
+		}
+		positions := make(map[string]bool)
+		for _, player := range lineups.Home.Starters {
+			if player.Player.Position != nil {
+				positions[*player.Player.Position] = true
+			}
+		}
+		for _, position := range []string{"goalkeeper", "defender", "midfielder", "forward"} {
+			if !positions[position] {
+				t.Fatalf("home starting lineup is missing %s coverage: %+v", position, lineups.Home.Starters)
+			}
+		}
+		var alexStatus, liamStatus string
+		for _, player := range lineups.Home.Starters {
+			if player.Player.ID == "30000000-0000-0000-0000-000000000001" {
+				alexStatus = player.SubstitutionStatus
+			}
+		}
+		for _, player := range lineups.Home.Substitutes {
+			if player.Player.ID == "30000000-0000-0000-0000-000000000009" {
+				liamStatus = player.SubstitutionStatus
+			}
+		}
+		if alexStatus != "substituted_out" || liamStatus != "substituted_in" {
+			t.Fatalf("substitution direction was not derived correctly: home=%+v", lineups.Home)
+		}
+
+		statistics, err := footballService.GetMatchStatistics(ctx, liveMatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if statistics.Home.Totals == nil || statistics.Away.Totals == nil || statistics.Home.Totals.Possession == nil || len(statistics.Home.Players) < 2 {
+			t.Fatalf("unexpected seeded match statistics: %+v", statistics)
+		}
+
+		standings, err := footballService.ListSeasonStandings(ctx, seasonID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(standings.Data) != 4 || standings.Data[0].GoalDifference != 15 || standings.Data[0].HomeRecord == nil {
+			t.Fatalf("unexpected seeded standings: %+v", standings)
+		}
+
+		venue, err := footballService.GetVenue(ctx, venueID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if venue.CountryName == nil || venue.Latitude == nil || venue.Longitude == nil || venue.Surface == nil {
+			t.Fatalf("venue detail is incomplete: %+v", venue)
+		}
+
+		officials, err := footballService.ListMatchOfficials(ctx, liveMatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(officials.Data) != 1 || officials.Data[0].Role != football.OfficialReferee || officials.Data[0].Person.DisplayName == "" {
+			t.Fatalf("unexpected officials: %+v", officials)
+		}
+
+		results, err := footballService.Search(ctx, football.SearchFilter{Query: "victoria", Limit: 20})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(results) == 0 || results[0].EntityType != football.SearchTeam {
+			t.Fatalf("unexpected search results: %+v", results)
+		}
+		discoveryResults, err := footballService.Search(ctx, football.SearchFilter{
+			Query: "premier", Types: []football.SearchEntityType{football.SearchLeague, football.SearchFixture}, Limit: 20,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var foundLeague, foundFixture bool
+		for _, result := range discoveryResults {
+			foundLeague = foundLeague || result.EntityType == football.SearchLeague
+			foundFixture = foundFixture || result.EntityType == football.SearchFixture
+		}
+		if !foundLeague || !foundFixture {
+			t.Fatalf("search did not include league and fixture results: %+v", discoveryResults)
+		}
+
+		headToHead, err := footballService.HeadToHead(ctx, football.HeadToHeadFilter{TeamAID: teamAID, TeamBID: teamBID, Limit: 10})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if headToHead.Summary.TeamAWins != 1 || headToHead.Summary.Draws != 1 || headToHead.Summary.TeamBWins != 1 || len(headToHead.Meetings) != 3 {
+			t.Fatalf("unexpected head-to-head summary: %+v", headToHead)
+		}
+	})
+
+	t.Run("installation prediction is unique and mutable before kickoff", func(t *testing.T) {
+		notifications := service.NewNotifications(repository)
+		installation, err := notifications.CreateInstallation(ctx, notification.CreateInstallation{
+			Platform: notification.PlatformIOS, AppID: "com.pabloadvisory.ssb.prediction",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		footballService := service.NewFootball(repository)
+		const matchID = "40000000-0000-0000-0000-000000000002"
+		if _, err := pool.Exec(ctx, `UPDATE matches SET kickoff_at=$2 WHERE id=$1`, matchID, time.Now().UTC().Add(time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+		first, err := footballService.SetInstallationPrediction(ctx, installation.ID, installation.Credential, matchID, football.PredictionHome)
+		if err != nil {
+			t.Fatal(err)
+		}
+		updated, err := footballService.SetInstallationPrediction(ctx, installation.ID, installation.Credential, matchID, football.PredictionAway)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if first.TotalVotes != 1 || updated.TotalVotes != 1 || updated.MySelection == nil || *updated.MySelection != football.PredictionAway {
+			t.Fatalf("vote update must retain one voter and change selection: first=%+v updated=%+v", first, updated)
+		}
+	})
+
+	t.Run("coverage replacement distinguishes supplied empty datasets", func(t *testing.T) {
+		footballService := service.NewFootball(repository)
+		const matchID = "40000000-0000-0000-0000-000000000002"
+		lineups := []football.LineupInput{
+			{
+				TeamID: "20000000-0000-0000-0000-000000000003", PersonID: "30000000-0000-0000-0000-000000000003",
+				IsStarter: true,
+			},
+			{
+				TeamID: "20000000-0000-0000-0000-000000000004", PersonID: "30000000-0000-0000-0000-000000000004",
+				IsStarter: true,
+			},
+		}
+		if err := footballService.ReplaceMatchCoverage(ctx, matchID, "integration", football.MatchCoverageUpdate{Lineups: &lineups}); err != nil {
+			t.Fatal(err)
+		}
+		stored, err := footballService.GetMatchLineups(ctx, matchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(stored.Home.Starters) != 1 || len(stored.Away.Starters) != 1 {
+			t.Fatalf("coverage replacement did not store both sides: %+v", stored)
+		}
+		empty := []football.LineupInput{}
+		if err := footballService.ReplaceMatchCoverage(ctx, matchID, "integration", football.MatchCoverageUpdate{Lineups: &empty}); err != nil {
+			t.Fatal(err)
+		}
+		cleared, err := footballService.GetMatchLineups(ctx, matchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(cleared.Home.Starters) != 0 || len(cleared.Away.Starters) != 0 {
+			t.Fatalf("explicit empty lineup dataset did not clear rows: %+v", cleared)
+		}
+	})
 
 	t.Run("news publication visibility and idempotency", func(t *testing.T) {
 		newsService := service.NewNews(repository)

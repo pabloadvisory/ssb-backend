@@ -6,37 +6,59 @@ import (
 )
 
 type League struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	Slug        string    `json:"slug"`
-	Type        string    `json:"type"`
-	Gender      string    `json:"gender"`
-	CountryCode *string   `json:"country_code,omitempty"`
-	LogoURL     *string   `json:"logo_url,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID              string    `json:"id"`
+	Name            string    `json:"name"`
+	Slug            string    `json:"slug"`
+	Type            string    `json:"type"`
+	Gender          string    `json:"gender"`
+	CountryCode     *string   `json:"country_code,omitempty"`
+	LogoURL         *string   `json:"logo_url,omitempty"`
+	CurrentSeasonID *string   `json:"current_season_id,omitempty"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
+}
+
+type Season struct {
+	ID        string    `json:"id"`
+	LeagueID  string    `json:"league_id"`
+	Name      string    `json:"name"`
+	StartsOn  time.Time `json:"starts_on"`
+	EndsOn    time.Time `json:"ends_on"`
+	IsCurrent bool      `json:"is_current"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Team struct {
-	ID          string    `json:"id"`
-	Name        string    `json:"name"`
-	ShortName   *string   `json:"short_name,omitempty"`
-	Code        *string   `json:"code,omitempty"`
-	CountryCode *string   `json:"country_code,omitempty"`
-	FoundedYear *int      `json:"founded_year,omitempty"`
-	LogoURL     *string   `json:"logo_url,omitempty"`
-	Venue       *Venue    `json:"venue,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID             string    `json:"id"`
+	Name           string    `json:"name"`
+	ShortName      *string   `json:"short_name,omitempty"`
+	Code           *string   `json:"code,omitempty"`
+	CountryCode    *string   `json:"country_code,omitempty"`
+	FoundedYear    *int      `json:"founded_year,omitempty"`
+	LogoURL        *string   `json:"logo_url,omitempty"`
+	PrimaryColor   *string   `json:"primary_color,omitempty"`
+	SecondaryColor *string   `json:"secondary_color,omitempty"`
+	Venue          *Venue    `json:"venue,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 type Venue struct {
-	ID       string  `json:"id"`
-	Name     string  `json:"name"`
-	City     *string `json:"city,omitempty"`
-	Capacity *int    `json:"capacity,omitempty"`
-	ImageURL *string `json:"image_url,omitempty"`
-	Timezone *string `json:"timezone,omitempty"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	City        *string   `json:"city,omitempty"`
+	CountryCode *string   `json:"country_code,omitempty"`
+	CountryName *string   `json:"country_name,omitempty"`
+	Address     *string   `json:"address,omitempty"`
+	Latitude    *float64  `json:"latitude,omitempty"`
+	Longitude   *float64  `json:"longitude,omitempty"`
+	Capacity    *int      `json:"capacity,omitempty"`
+	Surface     *string   `json:"surface,omitempty"`
+	ImageURL    *string   `json:"image_url,omitempty"`
+	Timezone    *string   `json:"timezone,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type Person struct {

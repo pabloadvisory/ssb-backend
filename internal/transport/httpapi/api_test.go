@@ -22,9 +22,21 @@ import (
 )
 
 type fakeStore struct {
-	leagues    []football.League
-	match      football.Match
-	onGetMatch func()
+	leagues       []football.League
+	seasons       football.LeagueSeasons
+	match         football.Match
+	venue         football.Venue
+	lineups       football.MatchLineups
+	statistics    football.MatchStatistics
+	standings     football.SeasonStandings
+	officials     football.MatchOfficials
+	searchResults []football.SearchResult
+	h2hMatches    []football.Match
+	odds          football.MatchOdds
+	broadcasts    football.MatchBroadcasts
+	weather       football.MatchWeather
+	prediction    football.MatchPrediction
+	onGetMatch    func()
 }
 
 func (store *fakeStore) ListLeagues(context.Context, football.LeagueFilter) ([]football.League, error) {
@@ -35,6 +47,12 @@ func (store *fakeStore) GetLeague(context.Context, string) (football.League, err
 		return football.League{}, football.ErrNotFound
 	}
 	return store.leagues[0], nil
+}
+func (store *fakeStore) ListLeagueSeasons(context.Context, string) (football.LeagueSeasons, error) {
+	if store.seasons.LeagueID == "" {
+		return football.LeagueSeasons{}, football.ErrNotFound
+	}
+	return store.seasons, nil
 }
 func (*fakeStore) GetTeam(context.Context, string) (football.Team, error) {
 	return football.Team{}, football.ErrNotFound

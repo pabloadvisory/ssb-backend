@@ -51,12 +51,17 @@ flowchart LR
     Queue --> QueueHealth
     Clients["REST clients"] --> ReadAPI["Public read API"]
     ReadAPI --> Core
+    Installation["Authenticated installation"] --> PredictionAPI["Prediction vote API"]
+    PredictionAPI --> Core
+    Coverage["Lineups, standings, odds, broadcasts, weather"] --> Ingest
     CMS["Editorial CMS"] --> EditorialAPI["Authenticated news upsert API"]
     EditorialAPI --> News["Draft, scheduled, and published articles"]
     News --> ReadAPI
 ```
 
 Provider-specific clients do not belong in the domain or HTTP transport. They should translate upstream payloads into normalized ingest commands, retain raw payloads in cheap object storage when replay/audit is needed, and record provider cursors in `ingestion_cursors`.
+
+The normalized odds, broadcast, weather, lineup, statistics, officials, and standings APIs are not themselves data sources. A production deployment must select upstream vendors and run credentialed adapters that feed these endpoints, with provider-specific quota handling, retries, cursor advancement, freshness monitoring, and replay kept outside the core API process.
 
 ## Boundaries
 
@@ -88,7 +93,7 @@ Provider-specific clients do not belong in the domain or HTTP transport. They sh
 2. Generate an OpenAPI 3.1 contract and SDK fixtures once mobile/web client requirements settle.
 3. Replace the separate editorial API key with staff identity, role-based authorization, and an audit trail when a first-party CMS is introduced.
 4. Add a Prometheus or OpenTelemetry implementation of the existing metrics interface with explicit cardinality budgets and service-level objectives.
-5. Add standings projection, lineup ingestion, data-quality reconciliation, and correction/replay workflows.
+5. Add catalog ingestion plus data-quality reconciliation and correction/replay workflows around the existing match-coverage replacement API.
 6. Add ActivityKit broadcast channels for large iOS audiences and evaluate FCM topics only where their latency profile fits.
 
 ## Mobile delivery model

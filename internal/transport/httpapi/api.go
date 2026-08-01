@@ -72,9 +72,11 @@ func (api *API) Handler() http.Handler {
 	router.HandleFunc("GET /health/ready", api.ready)
 	router.HandleFunc("GET /v1/leagues", api.listLeagues)
 	router.HandleFunc("GET /v1/leagues/{id}", api.getLeague)
+	router.HandleFunc("GET /v1/leagues/{id}/seasons", api.listLeagueSeasons)
 	router.HandleFunc("GET /v1/teams/{id}", api.getTeam)
 	router.HandleFunc("GET /v1/players/{id}", api.getPlayer)
 	router.HandleFunc("GET /v1/coaches/{id}", api.getCoach)
+	api.registerFootballCoverageRoutes(router)
 	router.HandleFunc("GET /v1/matches", api.listMatches)
 	router.HandleFunc("GET /v1/matches/{id}", api.getMatch)
 	router.HandleFunc("GET /v1/matches/{id}/events", api.listMatchEvents)
@@ -153,6 +155,11 @@ func (api *API) listLeagues(writer http.ResponseWriter, request *http.Request) {
 
 func (api *API) getLeague(writer http.ResponseWriter, request *http.Request) {
 	value, err := api.football.GetLeague(request.Context(), request.PathValue("id"))
+	api.writeResult(writer, request, value, err)
+}
+
+func (api *API) listLeagueSeasons(writer http.ResponseWriter, request *http.Request) {
+	value, err := api.football.ListLeagueSeasons(request.Context(), request.PathValue("id"))
 	api.writeResult(writer, request, value, err)
 }
 

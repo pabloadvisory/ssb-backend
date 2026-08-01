@@ -7,6 +7,9 @@ Repository: [github.com/pabloadvisory/ssb-backend](https://github.com/pabloadvis
 ## What exists today
 
 - public, versioned read API for leagues, teams, players, coaches, matches, and match events;
+- match lineups, team/player statistics, standings, officials, venue detail, search, and head-to-head summaries;
+- provider-neutral odds, broadcast, and weather storage with authenticated normalized ingestion;
+- installation-authenticated match predictions with one mutable vote per installation before kickoff;
 - public, reverse-chronological news feed and article detail API with scheduled publication, filters, and football-resource relationships;
 - isolated draft/published/archived editorial workflow with idempotent, authenticated CMS upserts;
 - keyset pagination for stable high-volume match and league feeds;
@@ -65,7 +68,7 @@ ssb push-worker               deliver queued APNs/ActivityKit and Android FCM me
 
 ## Demo data
 
-`make seed-demo` creates one league, one current season, one venue, four teams, four players, two coaches, one official, standings with home/away splits, lineups/team formations, player match statistics, three matches (live, scheduled, and finished), two published news articles, and one private draft. Running it again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
+`make seed-demo` creates one league, one current season, one coordinate-backed venue, four teams, 38 players, two coaches, one official, standings with home/away splits, two complete 18-player matchday squads (11 starters and seven substitutes per side), statistics, five matches (live, scheduled, and finished), sample odds/broadcast/weather coverage, two published news articles, and one private draft. Running it again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
 
 Useful fixture IDs:
 
@@ -87,6 +90,11 @@ curl 'http://localhost:8080/v1/matches?status=live'
 curl 'http://localhost:8080/v1/teams/20000000-0000-0000-0000-000000000001'
 curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001'
 curl 'http://localhost:8080/v1/coaches/30000000-0000-0000-0000-000000000005'
+curl 'http://localhost:8080/v1/matches/40000000-0000-0000-0000-000000000001/lineups'
+curl 'http://localhost:8080/v1/matches/40000000-0000-0000-0000-000000000001/statistics'
+curl 'http://localhost:8080/v1/seasons/10000000-0000-0000-0000-000000000002/standings'
+curl 'http://localhost:8080/v1/leagues/10000000-0000-0000-0000-000000000001/seasons'
+curl 'http://localhost:8080/v1/search?q=victoria&type=team&type=player'
 curl 'http://localhost:8080/v1/news?featured=true'
 curl 'http://localhost:8080/v1/news/victoria-edge-mahe-in-demo-opener'
 curl 'http://localhost:8080/v1/matches/40000000-0000-0000-0000-000000000001/events'
@@ -100,20 +108,39 @@ GET  /health/live
 GET  /health/ready
 GET  /v1/leagues
 GET  /v1/leagues/{id}
+GET  /v1/leagues/{id}/seasons
 GET  /v1/teams/{id}
 GET  /v1/players/{id}
 GET  /v1/coaches/{id}
+GET  /v1/venues/{id}
+GET  /v1/search
 GET  /v1/matches
+GET  /v1/matches/head-to-head
 GET  /v1/matches/{id}
 GET  /v1/matches/{id}/events
+GET  /v1/matches/{id}/lineups
+GET  /v1/matches/{id}/statistics
+GET  /v1/matches/{id}/officials
+GET  /v1/matches/{id}/odds
+GET  /v1/matches/{id}/broadcasts
+GET  /v1/matches/{id}/weather
+GET  /v1/matches/{id}/prediction
 GET  /v1/matches/{id}/stream
 GET  /v1/matches/{id}/ws
+GET  /v1/seasons/{id}/standings
 GET  /v1/news
 GET  /v1/news/{slug}
 POST /v1/installations
 PUT  /v1/installations/{id}/push-endpoints/{kind}
 PUT  /v1/installations/{id}/matches/{match_id}
+GET  /v1/installations/{id}/matches/{match_id}/prediction
+PUT  /v1/installations/{id}/matches/{match_id}/prediction
 PUT  /v1/internal/matches/{provider}/{external_id}
+PUT  /v1/internal/matches/{id}/coverage/{source}
+PUT  /v1/internal/matches/{id}/odds/{source}/{external_id}
+PUT  /v1/internal/matches/{id}/broadcasts/{source}/{external_id}
+PUT  /v1/internal/matches/{id}/weather/{source}/{external_id}
+PUT  /v1/internal/seasons/{id}/standings/{source}
 PUT  /v1/internal/news/{source}/{external_id}
 ```
 
@@ -140,6 +167,33 @@ curl 'http://localhost:8080/v1/matches?status=live&league_id=<uuid>&limit=50'
 The response `page.next_cursor` is opaque. Pass it back as `cursor`; do not parse or construct it in clients.
 
 Public JSON GETs return a strong `ETag` and `Cache-Control: public`. Send `If-None-Match` to receive `304 Not Modified` when a representation has not changed.
+
+## Football coverage contract
+
+Match coverage is split into cacheable subresources so the normal match feed remains lightweight:
+
+```bash
+curl '/v1/matches/{id}/lineups'
+curl '/v1/matches/{id}/statistics'
+curl '/v1/matches/{id}/officials'
+curl '/v1/matches/{id}/odds?bookmaker=demo-sportsbook'
+curl '/v1/matches/{id}/broadcasts?country_code=SC'
+curl '/v1/matches/{id}/weather'
+curl '/v1/seasons/{id}/standings'
+curl '/v1/matches/head-to-head?team_a={id}&team_b={id}&limit=10'
+```
+
+Lineups always contain explicit `home` and `away` objects, with formation, coach, starters, substitutes, player profile fields, shirt/grid positions, captain state, and substitution state derived from match events. Statistics use the same two-sided shape; team totals remain `null` when a provider did not supply them, while available player rows are still returned. Standings include team presentation fields, computed goal difference, form, zone, and nullable home/away records.
+
+League responses expose `current_season_id` when one is marked current. `GET /v1/leagues/{id}/seasons` returns every season with the current season first, so clients can discover the standings ID without prior database knowledge.
+
+`GET /v1/search?q=` searches leagues, teams, players, coaches, and fixtures. Repeat `type=league`, `type=team`, `type=player`, `type=coach`, or `type=fixture` to restrict the result set. Fixture results include league/season IDs, kickoff, status, and both teams. The query must contain 2–100 characters and `limit` is capped at 50.
+
+Coverage writers use `SSB_INGEST_API_KEY`. `PUT /v1/internal/matches/{id}/coverage/{source}` accepts independently optional `team_info`, `lineups`, `team_statistics`, `player_statistics`, and `officials` datasets. An omitted dataset is preserved; an explicit empty array authoritatively clears that dataset. Standings replacement follows the same authenticated, atomic model at the season route.
+
+Odds, broadcast, weather, and match-coverage routes are provider-neutral. The core service stores normalized data and attribution timestamps but does not ship speculative vendor clients or credentials. Production still requires separately deployed upstream provider adapters, provider credentials, polling/webhook schedules, retry policy, and cursor monitoring. Those adapters call the authenticated internal routes. Broadcast URLs must use HTTPS, region filtering uses an explicit ISO country code, and unknown availability is never treated as global.
+
+The public prediction route returns aggregate home/draw/away totals. Installation-specific GET/PUT routes require the installation bearer credential, return `private, no-store`, and allow one mutable vote per installation only before kickoff. This blocks duplicate votes from the same server-issued installation; stronger one-person guarantees require account identity or device-attestation work.
 
 ## News contract
 
