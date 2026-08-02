@@ -5,6 +5,7 @@ x-app: &app
   build:
     context: ..
     dockerfile: Dockerfile
+    network: host
   environment: &app-environment
     SSB_ENV: production
     SSB_LOG_LEVEL: info
