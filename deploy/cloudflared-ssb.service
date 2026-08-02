@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/cloudflared --no-autoupdate --config /etc/cloudflared-ssb/config.yml tunnel run
+ExecStart=/usr/local/bin/cloudflared --no-autoupdate --config /etc/cloudflared-ssb/config.yml tunnel run
 Restart=on-failure
 RestartSec=5s
 
