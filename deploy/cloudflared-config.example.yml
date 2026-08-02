@@ -1,0 +1,9 @@
+tunnel: replace-with-tunnel-uuid
+credentials-file: /etc/cloudflared-ssb/replace-with-tunnel-uuid.json
+
+ingress:
+  - hostname: ssb.ibuildnothing.com
+    service: http://127.0.0.1:8788
+    originRequest:
+      httpHostHeader: ssb.ibuildnothing.com
+  - service: http_status:404

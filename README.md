@@ -56,6 +56,10 @@ go run ./cmd/ssb migrate up
 go run ./cmd/ssb serve
 ```
 
+## Production
+
+The production API origin is `https://ssb.ibuildnothing.com`; public resources remain under `/v1/...`. See [docs/deployment.md](docs/deployment.md) for the isolated Docker + Cloudflare Tunnel layout and the pull-and-redeploy command used after changes reach `main`.
+
 ## Commands
 
 ```text
