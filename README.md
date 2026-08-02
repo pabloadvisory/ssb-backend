@@ -68,7 +68,7 @@ ssb push-worker               deliver queued APNs/ActivityKit and Android FCM me
 
 ## Demo data
 
-`make seed-demo` creates one league, one current season, one coordinate-backed venue, four teams, 38 players, two coaches, one official, standings with home/away splits, two complete 18-player matchday squads (11 starters and seven substitutes per side), statistics, five matches (live, scheduled, and finished), sample odds/broadcast/weather coverage, two published news articles, and one private draft. Running it again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
+`make seed-demo` creates one league, one current season, one coordinate-backed venue, four teams, 38 players, two coaches, one official, standings with home/away splits, two complete 18-player matchday squads (11 starters and seven substitutes per side), player memberships and advanced statistics, one player trait cohort, heatmap, shot map and valuation, five matches (live, scheduled, and finished), sample odds/broadcast/weather coverage, two published news articles, and one private draft. Running it again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
 
 Useful fixture IDs:
 
@@ -89,6 +89,13 @@ Examples:
 curl 'http://localhost:8080/v1/matches?status=live'
 curl 'http://localhost:8080/v1/teams/20000000-0000-0000-0000-000000000001'
 curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/memberships'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/matches?season_id=10000000-0000-0000-0000-000000000002'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/statistics?season_id=10000000-0000-0000-0000-000000000002'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/traits?season_id=10000000-0000-0000-0000-000000000002'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/heatmap?match_id=40000000-0000-0000-0000-000000000001'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/shots?match_id=40000000-0000-0000-0000-000000000001'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/valuation'
 curl 'http://localhost:8080/v1/coaches/30000000-0000-0000-0000-000000000005'
 curl 'http://localhost:8080/v1/matches/40000000-0000-0000-0000-000000000001/lineups'
 curl 'http://localhost:8080/v1/matches/40000000-0000-0000-0000-000000000001/statistics'
@@ -110,7 +117,17 @@ GET  /v1/leagues
 GET  /v1/leagues/{id}
 GET  /v1/leagues/{id}/seasons
 GET  /v1/teams/{id}
+GET  /v1/players
 GET  /v1/players/{id}
+GET  /v1/players/compare
+GET  /v1/players/{id}/memberships
+GET  /v1/players/{id}/matches
+GET  /v1/players/{id}/statistics
+GET  /v1/players/{id}/career
+GET  /v1/players/{id}/traits
+GET  /v1/players/{id}/heatmap
+GET  /v1/players/{id}/shots
+GET  /v1/players/{id}/valuation
 GET  /v1/coaches/{id}
 GET  /v1/venues/{id}
 GET  /v1/search
@@ -135,12 +152,20 @@ PUT  /v1/installations/{id}/push-endpoints/{kind}
 PUT  /v1/installations/{id}/matches/{match_id}
 GET  /v1/installations/{id}/matches/{match_id}/prediction
 PUT  /v1/installations/{id}/matches/{match_id}/prediction
+GET  /v1/installations/{id}/player-follows
+PUT  /v1/installations/{id}/player-follows/{player_id}
+DELETE /v1/installations/{id}/player-follows/{player_id}
+GET  /v1/installations/{id}/notification-preferences
+PUT  /v1/installations/{id}/notification-preferences
 PUT  /v1/internal/matches/{provider}/{external_id}
 PUT  /v1/internal/matches/{id}/coverage/{source}
 PUT  /v1/internal/matches/{id}/odds/{source}/{external_id}
 PUT  /v1/internal/matches/{id}/broadcasts/{source}/{external_id}
 PUT  /v1/internal/matches/{id}/weather/{source}/{external_id}
 PUT  /v1/internal/seasons/{id}/standings/{source}
+PUT  /v1/internal/players/{id}/traits/{source}/{external_id}
+PUT  /v1/internal/matches/{match_id}/players/{id}/spatial/{source}/{external_id}
+PUT  /v1/internal/players/{id}/valuations/{source}/{external_id}
 PUT  /v1/internal/news/{source}/{external_id}
 ```
 
@@ -148,7 +173,7 @@ The internal endpoint requires `Authorization: Bearer <SSB_INGEST_API_KEY>`. Rep
 
 The internal news endpoint uses a separate `Authorization: Bearer <SSB_EDITORIAL_API_KEY>` credential. Leave that setting empty to disable editorial writes. Repeating the same source/external ID is idempotent: the canonical article ID and version remain stable until content changes.
 
-`POST /v1/installations` returns an installation credential exactly once. Store it in the iOS Keychain or Android Keystore-backed encrypted storage. The two installation `PUT` routes require that credential as a bearer token. The API applies a bounded per-client token bucket to installation creation and caps aggregate SSE/WebSocket connections per client IP. Keep distributed limits at the production edge as defense in depth, and add App Attest / Play Integrity verification before public launch.
+`POST /v1/installations` returns an installation credential exactly once. Store it in the iOS Keychain or Android Keystore-backed encrypted storage. Installation-specific subscription, prediction, following, and preference routes require that credential as a bearer token. The API applies a bounded per-client token bucket to installation creation and caps aggregate SSE/WebSocket connections per client IP. Keep distributed limits at the production edge as defense in depth, and add App Attest / Play Integrity verification before public launch.
 
 Endpoint kinds are:
 
@@ -194,6 +219,24 @@ Coverage writers use `SSB_INGEST_API_KEY`. `PUT /v1/internal/matches/{id}/covera
 Odds, broadcast, weather, and match-coverage routes are provider-neutral. The core service stores normalized data and attribution timestamps but does not ship speculative vendor clients or credentials. Production still requires separately deployed upstream provider adapters, provider credentials, polling/webhook schedules, retry policy, and cursor monitoring. Those adapters call the authenticated internal routes. Broadcast URLs must use HTTPS, region filtering uses an explicit ISO country code, and unknown availability is never treated as global.
 
 The public prediction route returns aggregate home/draw/away totals. Installation-specific GET/PUT routes require the installation bearer credential, return `private, no-store`, and allow one mutable vote per installation only before kickoff. This blocks duplicate votes from the same server-issued installation; stronger one-person guarantees require account identity or device-attestation work.
+
+## Player profile contract
+
+Player discovery supports `q`, `league_id`, `season_id`, `team_id`, `position`, `limit`, and an opaque `cursor`. Passing a season or league also includes compatible season statistics, enabling a comparison picker without separate calls. Comparison accepts two to five repeated or comma-separated `player_id` values plus `season_id` or `league_id`:
+
+```bash
+curl 'http://localhost:8080/v1/players?q=alex&league_id=10000000-0000-0000-0000-000000000001&season_id=10000000-0000-0000-0000-000000000002&position=forward'
+curl 'http://localhost:8080/v1/players/compare?player_id=30000000-0000-0000-0000-000000000001&player_id=30000000-0000-0000-0000-000000000008&season_id=10000000-0000-0000-0000-000000000002'
+curl 'http://localhost:8080/v1/players/30000000-0000-0000-0000-000000000001/career'
+```
+
+Memberships include club/national type, squad number, spell dates, loan parent and transfer type, and a date-derived `is_current`. Match history is reverse chronological and reports the player-side result, opponent, start/minutes, scoring, cards, rating, and substitution direction. Season totals retain `null` for advanced metrics that a provider did not supply; `coverage` reports how many matches have ratings and advanced data.
+
+Traits expose normalized 0–100 percentiles with position, league, season, cohort size, minimum minutes, player minutes, source, and observation time. Heatmaps and shots use a canonical 0–100 pitch with bottom-left origin and left-to-right attacking orientation. Shot records include numeric coordinates, xG, outcome, body part, minute, and match ID. Valuations use integer minor currency units, ISO-style currency code, valuation date, observation time, and source.
+
+The trait, spatial, and valuation write routes require `SSB_INGEST_API_KEY` and are idempotent by `(source, external_id)`. The core normalizes and stores provider-neutral payloads; production still needs upstream adapters to supply memberships, match statistics, traits, spatial events, and valuations.
+
+Player follow and notification-preference routes require the installation bearer credential and return `Cache-Control: private, no-store`. Following state and the `followed_player_events_enabled` preference are persisted now. Actual player-event notification fanout remains separate until the product defines which player events trigger pushes and their delivery policy.
 
 ## News contract
 

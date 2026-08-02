@@ -124,12 +124,15 @@ func (store *Store) ReplaceMatchCoverage(
 			if _, err := tx.Exec(ctx, `
 				INSERT INTO player_match_statistics (
 					match_id, team_id, person_id, started, minutes_played, goals, assists,
-					shots, shots_on_target, passes, tackles, saves, yellow_cards, red_cards,
-					rating, metadata
-				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)`,
+					shots, shots_on_target, passes, passes_completed, key_passes, tackles,
+					interceptions, clearances, blocks, duels, duels_won, saves,
+					yellow_cards, red_cards, rating, expected_goals, expected_assists, metadata
+				) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)`,
 				matchID, item.TeamID, item.PersonID, item.Started, item.MinutesPlayed,
-				item.Goals, item.Assists, item.Shots, item.ShotsOnTarget, item.Passes,
-				item.Tackles, item.Saves, item.YellowCards, item.RedCards, item.Rating, metadata,
+				item.Goals, item.Assists, item.Shots, item.ShotsOnTarget, item.Passes, item.PassesCompleted,
+				item.KeyPasses, item.Tackles, item.Interceptions, item.Clearances, item.Blocks,
+				item.Duels, item.DuelsWon, item.Saves, item.YellowCards, item.RedCards,
+				item.Rating, item.ExpectedGoals, item.ExpectedAssists, metadata,
 			); err != nil {
 				return mapError(err)
 			}

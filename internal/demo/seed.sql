@@ -187,6 +187,26 @@ ON CONFLICT (id) DO UPDATE SET
     team_id = EXCLUDED.team_id, person_id = EXCLUDED.person_id, role = EXCLUDED.role,
     shirt_number = EXCLUDED.shirt_number, starts_on = EXCLUDED.starts_on, ends_on = NULL;
 
+UPDATE team_memberships
+SET transfer_type = 'permanent', is_loan = false, parent_team_id = NULL
+WHERE id::text LIKE '31000000-0000-0000-0000-0000000000%';
+
+INSERT INTO team_memberships (
+    id, team_id, person_id, role, shirt_number, starts_on, ends_on,
+    is_loan, parent_team_id, transfer_type
+)
+VALUES (
+    '31000000-0000-0000-0000-000000000101',
+    '20000000-0000-0000-0000-000000000003',
+    '30000000-0000-0000-0000-000000000001',
+    'player', 19, '2024-01-01', '2025-12-31', false, NULL, 'permanent'
+)
+ON CONFLICT (id) DO UPDATE SET
+    team_id = EXCLUDED.team_id, person_id = EXCLUDED.person_id, role = EXCLUDED.role,
+    shirt_number = EXCLUDED.shirt_number, starts_on = EXCLUDED.starts_on,
+    ends_on = EXCLUDED.ends_on, is_loan = EXCLUDED.is_loan,
+    parent_team_id = EXCLUDED.parent_team_id, transfer_type = EXCLUDED.transfer_type;
+
 INSERT INTO matches (
     id, league_id, season_id, stage, round, round_sort, group_name, leg, kickoff_at,
     status, period, elapsed_minute, venue_id, home_team_id, away_team_id,
@@ -339,6 +359,146 @@ ON CONFLICT (match_id, person_id) DO UPDATE SET
     tackles = EXCLUDED.tackles, saves = EXCLUDED.saves,
     yellow_cards = EXCLUDED.yellow_cards, red_cards = EXCLUDED.red_cards,
     rating = EXCLUDED.rating, metadata = EXCLUDED.metadata;
+
+UPDATE player_match_statistics
+SET passes_completed = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000001' THEN 17
+        WHEN '30000000-0000-0000-0000-000000000008' THEN 29
+        WHEN '30000000-0000-0000-0000-000000000009' THEN 3
+        WHEN '30000000-0000-0000-0000-000000000002' THEN 13
+        WHEN '30000000-0000-0000-0000-000000000010' THEN 23
+    END,
+    key_passes = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000001' THEN 2
+        WHEN '30000000-0000-0000-0000-000000000008' THEN 4
+        ELSE 0
+    END,
+    interceptions = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000010' THEN 4
+        ELSE 1
+    END,
+    clearances = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000010' THEN 6
+        ELSE 0
+    END,
+    blocks = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000010' THEN 2
+        ELSE 0
+    END,
+    duels = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000001' THEN 9
+        WHEN '30000000-0000-0000-0000-000000000008' THEN 8
+        ELSE 4
+    END,
+    duels_won = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000001' THEN 6
+        WHEN '30000000-0000-0000-0000-000000000008' THEN 5
+        ELSE 2
+    END,
+    expected_goals = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000001' THEN 0.730
+        WHEN '30000000-0000-0000-0000-000000000008' THEN 0.080
+        WHEN '30000000-0000-0000-0000-000000000009' THEN 0.050
+        ELSE 0.000
+    END,
+    expected_assists = CASE person_id
+        WHEN '30000000-0000-0000-0000-000000000001' THEN 0.180
+        WHEN '30000000-0000-0000-0000-000000000008' THEN 0.420
+        ELSE 0.000
+    END
+WHERE match_id = '40000000-0000-0000-0000-000000000001';
+
+INSERT INTO player_trait_snapshots (
+    id, person_id, team_id, league_id, season_id, source, external_id,
+    position_group, minimum_minutes, cohort_size, player_minutes, observed_at, metadata
+)
+VALUES (
+    '70000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000001',
+    '10000000-0000-0000-0000-000000000002',
+    'demo', 'alex-michel-2026-traits', 'forward', 450, 42, 882,
+    '2026-08-01T13:20:00Z', '{"demo":true}'
+)
+ON CONFLICT (source, external_id) DO UPDATE SET
+    person_id = EXCLUDED.person_id, team_id = EXCLUDED.team_id,
+    league_id = EXCLUDED.league_id, season_id = EXCLUDED.season_id,
+    position_group = EXCLUDED.position_group, minimum_minutes = EXCLUDED.minimum_minutes,
+    cohort_size = EXCLUDED.cohort_size, player_minutes = EXCLUDED.player_minutes,
+    observed_at = EXCLUDED.observed_at, metadata = EXCLUDED.metadata;
+
+DELETE FROM player_trait_metrics
+WHERE snapshot_id = '70000000-0000-0000-0000-000000000001';
+
+INSERT INTO player_trait_metrics (
+    snapshot_id, metric_key, label, category, raw_value, per_90_value,
+    percentile, unit, direction
+)
+VALUES
+    ('70000000-0000-0000-0000-000000000001', 'goals', 'Goals', 'attacking', 9, 0.92, 91, 'per_90', 'higher_is_better'),
+    ('70000000-0000-0000-0000-000000000001', 'expected_goals', 'Expected goals', 'attacking', 7.8, 0.80, 86, 'xg_per_90', 'higher_is_better'),
+    ('70000000-0000-0000-0000-000000000001', 'key_passes', 'Key passes', 'creation', 24, 2.45, 78, 'per_90', 'higher_is_better'),
+    ('70000000-0000-0000-0000-000000000001', 'pressures', 'Pressures', 'defending', 138, 14.08, 69, 'per_90', 'higher_is_better');
+
+INSERT INTO player_spatial_snapshots (
+    id, match_id, person_id, team_id, source, external_id,
+    orientation, observed_at, metadata
+)
+VALUES (
+    '71000000-0000-0000-0000-000000000001',
+    '40000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    'demo', 'live-match-1-alex-spatial', 'attacking_left_to_right',
+    '2026-08-01T13:20:00Z', '{"demo":true}'
+)
+ON CONFLICT (source, external_id) DO UPDATE SET
+    match_id = EXCLUDED.match_id, person_id = EXCLUDED.person_id,
+    team_id = EXCLUDED.team_id, orientation = EXCLUDED.orientation,
+    observed_at = EXCLUDED.observed_at, metadata = EXCLUDED.metadata;
+
+DELETE FROM player_touch_points
+WHERE snapshot_id = '71000000-0000-0000-0000-000000000001';
+DELETE FROM player_shots
+WHERE snapshot_id = '71000000-0000-0000-0000-000000000001';
+
+INSERT INTO player_touch_points (
+    snapshot_id, sequence, minute, x, y, intensity, touch_type
+)
+VALUES
+    ('71000000-0000-0000-0000-000000000001', 1, 8, 58, 42, 1.0, 'receive'),
+    ('71000000-0000-0000-0000-000000000001', 2, 18, 72, 28, 1.2, 'carry'),
+    ('71000000-0000-0000-0000-000000000001', 3, 34, 88, 51, 1.8, 'shot'),
+    ('71000000-0000-0000-0000-000000000001', 4, 47, 77, 66, 1.1, 'receive'),
+    ('71000000-0000-0000-0000-000000000001', 5, 61, 84, 39, 1.3, 'carry');
+
+INSERT INTO player_shots (
+    id, snapshot_id, sequence, match_event_id, minute, x, y,
+    expected_goals, outcome, body_part, shot_type
+)
+VALUES
+    ('72000000-0000-0000-0000-000000000001', '71000000-0000-0000-0000-000000000001',
+     1, NULL, 19, 83, 44, 0.1200, 'saved', 'right_foot', 'open_play'),
+    ('72000000-0000-0000-0000-000000000002', '71000000-0000-0000-0000-000000000001',
+     2, '41000000-0000-0000-0000-000000000002', 34, 88, 51, 0.6100, 'goal', 'right_foot', 'open_play');
+
+INSERT INTO player_valuations (
+    id, person_id, team_id, source, external_id, amount_minor,
+    currency, valued_on, observed_at, metadata
+)
+VALUES (
+    '73000000-0000-0000-0000-000000000001',
+    '30000000-0000-0000-0000-000000000001',
+    '20000000-0000-0000-0000-000000000001',
+    'demo', 'alex-michel-2026-valuation', 12500000, 'EUR',
+    '2026-08-01', '2026-08-01T10:00:00Z', '{"demo":true}'
+)
+ON CONFLICT (source, external_id) DO UPDATE SET
+    person_id = EXCLUDED.person_id, team_id = EXCLUDED.team_id,
+    amount_minor = EXCLUDED.amount_minor, currency = EXCLUDED.currency,
+    valued_on = EXCLUDED.valued_on, observed_at = EXCLUDED.observed_at,
+    metadata = EXCLUDED.metadata;
 
 INSERT INTO match_team_statistics (
     match_id, team_id, possession, shots, shots_on_target, shots_off_target,

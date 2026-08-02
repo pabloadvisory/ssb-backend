@@ -37,8 +37,8 @@ func TestPostgresIntegration(t *testing.T) {
 	if err := pool.QueryRow(ctx, `SELECT count(*) FROM schema_migrations`).Scan(&migrationCount); err != nil {
 		t.Fatal(err)
 	}
-	if migrationCount != 7 {
-		t.Fatalf("expected 7 forward migrations, got %d", migrationCount)
+	if migrationCount != 8 {
+		t.Fatalf("expected 8 forward migrations, got %d", migrationCount)
 	}
 	assertColumnAbsent(t, pool, "matches", "provider")
 	assertColumnAbsent(t, pool, "push_endpoints", "token")
@@ -171,6 +171,99 @@ func TestPostgresIntegration(t *testing.T) {
 		}
 		if headToHead.Summary.TeamAWins != 1 || headToHead.Summary.Draws != 1 || headToHead.Summary.TeamBWins != 1 || len(headToHead.Meetings) != 3 {
 			t.Fatalf("unexpected head-to-head summary: %+v", headToHead)
+		}
+	})
+
+	t.Run("player profiles analytics and comparison", func(t *testing.T) {
+		footballService := service.NewFootball(repository)
+		const playerID = "30000000-0000-0000-0000-000000000001"
+		const comparisonPlayerID = "30000000-0000-0000-0000-000000000008"
+		const leagueID = "10000000-0000-0000-0000-000000000001"
+		const seasonID = "10000000-0000-0000-0000-000000000002"
+		const matchID = "40000000-0000-0000-0000-000000000001"
+
+		memberships, err := footballService.ListPlayerMemberships(ctx, playerID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(memberships.Data) != 2 || !memberships.Data[0].IsCurrent || memberships.Data[0].ShirtNumber == nil || *memberships.Data[0].ShirtNumber != 9 || memberships.Data[1].TransferType != "permanent" {
+			t.Fatalf("unexpected memberships: %+v", memberships)
+		}
+
+		matches, err := footballService.ListPlayerMatches(ctx, playerID, football.PlayerMatchFilter{SeasonID: seasonID, Limit: 10})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(matches) != 1 || matches[0].Fixture.ID != matchID || !matches[0].Started || matches[0].Substitution.LeftAt == nil {
+			t.Fatalf("unexpected match history: %+v", matches)
+		}
+
+		statistics, err := footballService.GetPlayerSeasonStatistics(ctx, playerID, seasonID, leagueID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if statistics.Statistics.Appearances != 1 || statistics.Statistics.Goals != 1 || statistics.Statistics.ExpectedGoals == nil || statistics.Coverage.AdvancedMatches != 1 {
+			t.Fatalf("unexpected player statistics: %+v", statistics)
+		}
+
+		career, err := footballService.GetPlayerCareer(ctx, playerID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(career.Spells) != 2 || len(career.Spells[0].Seasons) != 1 {
+			t.Fatalf("unexpected career: %+v", career)
+		}
+
+		discovered, err := footballService.ListPlayers(ctx, football.PlayerDiscoveryFilter{
+			Query: "Alex", LeagueID: leagueID, SeasonID: seasonID, Position: "forward", Limit: 10,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(discovered) != 1 || discovered[0].Player.ID != playerID || discovered[0].SeasonStatistics == nil {
+			t.Fatalf("unexpected player discovery: %+v", discovered)
+		}
+
+		comparison, err := footballService.ComparePlayers(ctx, football.PlayerComparisonFilter{
+			PlayerIDs: []string{playerID, comparisonPlayerID}, SeasonID: seasonID, LeagueID: leagueID,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !comparison.Compatible || len(comparison.Players) != 2 || comparison.Players[0].Player.ID != playerID {
+			t.Fatalf("unexpected comparison: %+v", comparison)
+		}
+
+		traits, err := footballService.GetPlayerTraits(ctx, playerID, football.PlayerAnalyticsFilter{SeasonID: seasonID, LeagueID: leagueID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if traits.PositionGroup != "forward" || traits.CohortSize != 42 || len(traits.Metrics) != 4 {
+			t.Fatalf("unexpected traits: %+v", traits)
+		}
+
+		heatmap, err := footballService.GetPlayerHeatmap(ctx, playerID, football.PlayerAnalyticsFilter{MatchID: matchID})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if heatmap.CoordinateSystem.Orientation != "attacking_left_to_right" || len(heatmap.Data) != 5 {
+			t.Fatalf("unexpected heatmap: %+v", heatmap)
+		}
+
+		shots, err := footballService.ListPlayerShots(ctx, playerID, football.PlayerAnalyticsFilter{MatchID: matchID, Limit: 20})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(shots) != 2 || shots[0].Outcome != "goal" || shots[0].ExpectedGoals <= shots[1].ExpectedGoals {
+			t.Fatalf("unexpected shots: %+v", shots)
+		}
+
+		valuation, err := footballService.GetPlayerValuation(ctx, playerID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if valuation.AmountMinor != 12500000 || valuation.Currency != "EUR" || valuation.Source != "demo" {
+			t.Fatalf("unexpected valuation: %+v", valuation)
 		}
 	})
 

@@ -76,6 +76,7 @@ func (api *API) Handler() http.Handler {
 	router.HandleFunc("GET /v1/teams/{id}", api.getTeam)
 	router.HandleFunc("GET /v1/players/{id}", api.getPlayer)
 	router.HandleFunc("GET /v1/coaches/{id}", api.getCoach)
+	api.registerPlayerRoutes(router)
 	api.registerFootballCoverageRoutes(router)
 	router.HandleFunc("GET /v1/matches", api.listMatches)
 	router.HandleFunc("GET /v1/matches/{id}", api.getMatch)

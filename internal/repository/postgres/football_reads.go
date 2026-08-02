@@ -266,8 +266,11 @@ func (store *Store) GetMatchStatistics(ctx context.Context, matchID string) (foo
 			person.birth_date, person.country_code, person.photo_url,
 			player.position, player.detailed_position, player.preferred_foot, player.height_cm,
 			statistic.started, statistic.minutes_played, statistic.goals, statistic.assists,
-			statistic.shots, statistic.shots_on_target, statistic.passes, statistic.tackles,
-			statistic.saves, statistic.yellow_cards, statistic.red_cards, statistic.rating
+			statistic.shots, statistic.shots_on_target, statistic.passes, statistic.passes_completed,
+			statistic.key_passes, statistic.tackles, statistic.interceptions, statistic.clearances,
+			statistic.blocks, statistic.duels, statistic.duels_won, statistic.saves,
+			statistic.yellow_cards, statistic.red_cards, statistic.rating,
+			statistic.expected_goals, statistic.expected_assists
 		FROM player_match_statistics statistic
 		JOIN people person ON person.id = statistic.person_id
 		JOIN players player ON player.person_id = person.id
@@ -287,8 +290,11 @@ func (store *Store) GetMatchStatistics(ctx context.Context, matchID string) (foo
 			&statistic.Player.BirthDate, &statistic.Player.CountryCode, &statistic.Player.PhotoURL,
 			&statistic.Player.Position, &statistic.Player.DetailedPosition, &statistic.Player.PreferredFoot, &statistic.Player.HeightCM,
 			&statistic.Started, &statistic.MinutesPlayed, &statistic.Goals, &statistic.Assists,
-			&statistic.Shots, &statistic.ShotsOnTarget, &statistic.Passes, &statistic.Tackles,
-			&statistic.Saves, &statistic.YellowCards, &statistic.RedCards, &statistic.Rating,
+			&statistic.Shots, &statistic.ShotsOnTarget, &statistic.Passes, &statistic.PassesCompleted,
+			&statistic.KeyPasses, &statistic.Tackles, &statistic.Interceptions, &statistic.Clearances,
+			&statistic.Blocks, &statistic.Duels, &statistic.DuelsWon, &statistic.Saves,
+			&statistic.YellowCards, &statistic.RedCards, &statistic.Rating,
+			&statistic.ExpectedGoals, &statistic.ExpectedAssists,
 		); err != nil {
 			return football.MatchStatistics{}, mapError(err)
 		}
