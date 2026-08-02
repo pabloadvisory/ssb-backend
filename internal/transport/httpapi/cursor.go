@@ -18,6 +18,21 @@ type matchCursor struct {
 	ID        string    `json:"id"`
 }
 
+type playerMatchCursor struct {
+	KickoffAt time.Time `json:"kickoff_at"`
+	ID        string    `json:"id"`
+}
+
+type playerCursor struct {
+	Name string `json:"name"`
+	ID   string `json:"id"`
+}
+
+type playerFollowCursor struct {
+	FollowedAt time.Time `json:"followed_at"`
+	PlayerID   string    `json:"player_id"`
+}
+
 type newsCursor struct {
 	PublishedAt time.Time `json:"published_at"`
 	ID          string    `json:"id"`

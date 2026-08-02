@@ -101,6 +101,38 @@ type Subscription struct {
 	UpdatedAt            time.Time `json:"updated_at"`
 }
 
+type PlayerFollow struct {
+	InstallationID       string          `json:"installation_id"`
+	Player               football.Player `json:"player"`
+	NotificationsEnabled bool            `json:"notifications_enabled"`
+	FollowedAt           time.Time       `json:"followed_at"`
+	UpdatedAt            time.Time       `json:"updated_at"`
+}
+
+type SetPlayerFollow struct {
+	NotificationsEnabled bool `json:"notifications_enabled"`
+}
+
+type PlayerFollowFilter struct {
+	Limit            int
+	BeforeFollowedAt *time.Time
+	BeforePlayerID   string
+}
+
+type NotificationPreferences struct {
+	InstallationID              string    `json:"installation_id"`
+	MatchUpdatesEnabled         bool      `json:"match_updates_enabled"`
+	MatchFinishedEnabled        bool      `json:"match_finished_enabled"`
+	FollowedPlayerEventsEnabled bool      `json:"followed_player_events_enabled"`
+	UpdatedAt                   time.Time `json:"updated_at"`
+}
+
+type SetNotificationPreferences struct {
+	MatchUpdatesEnabled         bool `json:"match_updates_enabled"`
+	MatchFinishedEnabled        bool `json:"match_finished_enabled"`
+	FollowedPlayerEventsEnabled bool `json:"followed_player_events_enabled"`
+}
+
 type Delivery struct {
 	ID                     string
 	LockToken              string
@@ -137,6 +169,11 @@ type Store interface {
 	CreateInstallation(context.Context, CreateInstallation, []byte) (Installation, error)
 	RegisterEndpoint(context.Context, string, []byte, EndpointKind, RegisterEndpoint, []byte) (Endpoint, error)
 	SetMatchSubscription(context.Context, string, []byte, string, bool) (Subscription, error)
+	SetPlayerFollow(context.Context, string, []byte, string, SetPlayerFollow) (PlayerFollow, error)
+	DeletePlayerFollow(context.Context, string, []byte, string) error
+	ListPlayerFollows(context.Context, string, []byte, PlayerFollowFilter) ([]PlayerFollow, error)
+	GetNotificationPreferences(context.Context, string, []byte) (NotificationPreferences, error)
+	SetNotificationPreferences(context.Context, string, []byte, SetNotificationPreferences) (NotificationPreferences, error)
 	ClaimDeliveries(context.Context, int, time.Duration) ([]Delivery, error)
 	CompleteDelivery(context.Context, string, string, string) error
 	RetryDelivery(context.Context, string, string, time.Time, string, bool) error

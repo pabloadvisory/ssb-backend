@@ -74,19 +74,28 @@ type MatchTeamTotals struct {
 }
 
 type PlayerStatistics struct {
-	Player        Player   `json:"player"`
-	Started       bool     `json:"started"`
-	MinutesPlayed int16    `json:"minutes_played"`
-	Goals         int16    `json:"goals"`
-	Assists       int16    `json:"assists"`
-	Shots         int16    `json:"shots"`
-	ShotsOnTarget int16    `json:"shots_on_target"`
-	Passes        int16    `json:"passes"`
-	Tackles       int16    `json:"tackles"`
-	Saves         int16    `json:"saves"`
-	YellowCards   int16    `json:"yellow_cards"`
-	RedCards      int16    `json:"red_cards"`
-	Rating        *float64 `json:"rating,omitempty"`
+	Player          Player   `json:"player"`
+	Started         bool     `json:"started"`
+	MinutesPlayed   int16    `json:"minutes_played"`
+	Goals           int16    `json:"goals"`
+	Assists         int16    `json:"assists"`
+	Shots           int16    `json:"shots"`
+	ShotsOnTarget   int16    `json:"shots_on_target"`
+	Passes          int16    `json:"passes"`
+	PassesCompleted *int16   `json:"passes_completed,omitempty"`
+	KeyPasses       *int16   `json:"key_passes,omitempty"`
+	Tackles         int16    `json:"tackles"`
+	Interceptions   *int16   `json:"interceptions,omitempty"`
+	Clearances      *int16   `json:"clearances,omitempty"`
+	Blocks          *int16   `json:"blocks,omitempty"`
+	Duels           *int16   `json:"duels,omitempty"`
+	DuelsWon        *int16   `json:"duels_won,omitempty"`
+	Saves           int16    `json:"saves"`
+	YellowCards     int16    `json:"yellow_cards"`
+	RedCards        int16    `json:"red_cards"`
+	Rating          *float64 `json:"rating,omitempty"`
+	ExpectedGoals   *float64 `json:"expected_goals,omitempty"`
+	ExpectedAssists *float64 `json:"expected_assists,omitempty"`
 }
 
 type TeamMatchStatistics struct {

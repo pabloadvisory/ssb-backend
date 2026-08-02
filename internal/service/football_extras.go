@@ -275,7 +275,7 @@ func (service *Football) ReplaceMatchCoverage(ctx context.Context, matchID, sour
 	if command.PlayerStatistics != nil {
 		for index := range *command.PlayerStatistics {
 			item := &(*command.PlayerStatistics)[index]
-			if item.TeamID == "" || item.PersonID == "" || item.MinutesPlayed < 0 || item.MinutesPlayed > 200 || item.Goals < 0 || item.Assists < 0 || item.Shots < 0 || item.ShotsOnTarget < 0 || item.Passes < 0 || item.Tackles < 0 || item.Saves < 0 || item.YellowCards < 0 || item.RedCards < 0 || (item.Rating != nil && (*item.Rating < 0 || *item.Rating > 10)) {
+			if item.TeamID == "" || item.PersonID == "" || item.MinutesPlayed < 0 || item.MinutesPlayed > 200 || item.Goals < 0 || item.Assists < 0 || item.Shots < 0 || item.ShotsOnTarget < 0 || item.ShotsOnTarget > item.Shots || item.Passes < 0 || negativeInt16(item.PassesCompleted) || (item.PassesCompleted != nil && *item.PassesCompleted > item.Passes) || negativeInt16(item.KeyPasses) || item.Tackles < 0 || negativeInt16(item.Interceptions) || negativeInt16(item.Clearances) || negativeInt16(item.Blocks) || negativeInt16(item.Duels) || negativeInt16(item.DuelsWon) || (item.Duels != nil && item.DuelsWon != nil && *item.DuelsWon > *item.Duels) || item.Saves < 0 || item.YellowCards < 0 || item.RedCards < 0 || (item.Rating != nil && (*item.Rating < 0 || *item.Rating > 10)) || negativeFloat(item.ExpectedGoals) || negativeFloat(item.ExpectedAssists) {
 				return fmt.Errorf("%w: player_statistics[%d] is invalid", football.ErrInvalid, index)
 			}
 			if err := normalizeMetadata(&item.Metadata); err != nil {
@@ -295,6 +295,14 @@ func (service *Football) ReplaceMatchCoverage(ctx context.Context, matchID, sour
 		}
 	}
 	return service.store.ReplaceMatchCoverage(ctx, matchID, source, command)
+}
+
+func negativeInt16(value *int16) bool {
+	return value != nil && *value < 0
+}
+
+func negativeFloat(value *float64) bool {
+	return value != nil && *value < 0
 }
 
 func (service *Football) ReplaceSeasonStandings(ctx context.Context, seasonID, source string, command football.StandingsUpdate) error {
