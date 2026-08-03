@@ -143,6 +143,48 @@ func TestPostgresIntegration(t *testing.T) {
 			t.Fatalf("unexpected officials: %+v", officials)
 		}
 
+		const playoffMatchID = "40000000-0000-0000-0000-000000000006"
+		playoff, err := footballService.GetMatch(ctx, playoffMatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if playoff.KickoffAt.UTC() != time.Date(2026, time.August, 3, 14, 30, 0, 0, time.UTC) ||
+			playoff.HomeScore == nil || *playoff.HomeScore != 4 || playoff.AwayScore == nil || *playoff.AwayScore != 3 ||
+			playoff.HomeHTScore == nil || *playoff.HomeHTScore != 3 || playoff.AwayHTScore == nil || *playoff.AwayHTScore != 3 {
+			t.Fatalf("unexpected seeded play-off match: %+v", playoff)
+		}
+		playoffLineups, err := footballService.GetMatchLineups(ctx, playoffMatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(playoffLineups.Home.Starters) != 11 || len(playoffLineups.Home.Substitutes) != 6 ||
+			len(playoffLineups.Away.Starters) != 11 || len(playoffLineups.Away.Substitutes) != 9 {
+			t.Fatalf("unexpected seeded play-off squads: %+v", playoffLineups)
+		}
+		playoffOfficials, err := footballService.ListMatchOfficials(ctx, playoffMatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(playoffOfficials.Data) != 4 || playoffOfficials.Data[0].Person.DisplayName != "Noris Arissol" {
+			t.Fatalf("unexpected seeded play-off officials: %+v", playoffOfficials)
+		}
+		playoffEvents, err := footballService.ListMatchEvents(ctx, playoffMatchID, football.EventFilter{Limit: 100})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var goals, substitutions int
+		for _, event := range playoffEvents {
+			if event.Type == football.EventGoal || event.Type == football.EventPenaltyGoal {
+				goals++
+			}
+			if event.Type == football.EventSubstitution {
+				substitutions++
+			}
+		}
+		if len(playoffEvents) != 27 || goals != 7 || substitutions != 6 {
+			t.Fatalf("unexpected seeded play-off timeline: events=%d goals=%d substitutions=%d", len(playoffEvents), goals, substitutions)
+		}
+
 		results, err := footballService.Search(ctx, football.SearchFilter{Query: "victoria", Limit: 20})
 		if err != nil {
 			t.Fatal(err)
@@ -335,8 +377,8 @@ func TestPostgresIntegration(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(seeded) != 2 {
-			t.Fatalf("expected two published demo articles, got %d", len(seeded))
+		if len(seeded) != 3 {
+			t.Fatalf("expected three published demo articles, got %d", len(seeded))
 		}
 		if _, err := newsService.GetPublishedArticleBySlug(ctx, "transfer-window-notes"); !errors.Is(err, news.ErrNotFound) {
 			t.Fatalf("draft article must not be public, got %v", err)

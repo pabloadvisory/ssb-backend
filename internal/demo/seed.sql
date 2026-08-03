@@ -30,8 +30,9 @@ VALUES
         10000, 'grass', 'Indian/Mahe', '{"demo":true}'::jsonb
     ),
     (
-        '10000000-0000-0000-0000-000000000004', 'Stad Linite', NULL, 'SC',
-        NULL, NULL, NULL, NULL, NULL, 'Indian/Mahe', '{"demo":true}'::jsonb
+        '10000000-0000-0000-0000-000000000004', 'Stad Linite', 'Roche Caiman', 'SC',
+        'Stad Linite, Roche Caiman', NULL, NULL, NULL, NULL, 'Indian/Mahe',
+        '{"demo":true,"source":"seyfoot"}'::jsonb
     )
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name, city = EXCLUDED.city, country_code = EXCLUDED.country_code,
@@ -64,6 +65,91 @@ ON CONFLICT (id) DO UPDATE SET
     national = EXCLUDED.national, venue_id = EXCLUDED.venue_id, logo_url = EXCLUDED.logo_url,
     primary_color = EXCLUDED.primary_color, secondary_color = EXCLUDED.secondary_color,
     metadata = EXCLUDED.metadata;
+
+CREATE TEMP TABLE demo_playoff_people (
+    person_id uuid PRIMARY KEY,
+    membership_id uuid,
+    team_id uuid,
+    display_name text NOT NULL,
+    shirt_number smallint,
+    is_starter boolean NOT NULL DEFAULT false,
+    is_captain boolean NOT NULL DEFAULT false,
+    is_goalkeeper boolean NOT NULL DEFAULT false,
+    kind text NOT NULL,
+    external_id text NOT NULL UNIQUE
+) ON COMMIT DROP;
+
+INSERT INTO demo_playoff_people (
+    person_id, membership_id, team_id, display_name, shirt_number,
+    is_starter, is_captain, is_goalkeeper, kind, external_id
+)
+VALUES
+    ('32000000-0000-0000-0000-000000000001', '33000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000006', 'Felino Jude Francois Razalo', 30, true, false, true, 'player', 'match-2-home-30'),
+    ('32000000-0000-0000-0000-000000000002', '33000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000006', 'Elie Sopha', 6, true, true, false, 'player', 'match-2-home-6'),
+    ('32000000-0000-0000-0000-000000000003', '33000000-0000-0000-0000-000000000003', '20000000-0000-0000-0000-000000000006', 'Sedraniaina Randriamahazo', 2, true, false, false, 'player', 'match-2-home-2'),
+    ('32000000-0000-0000-0000-000000000004', '33000000-0000-0000-0000-000000000004', '20000000-0000-0000-0000-000000000006', 'Justin Clievy Stephen Riaze', 4, true, false, false, 'player', 'match-2-home-4'),
+    ('32000000-0000-0000-0000-000000000005', '33000000-0000-0000-0000-000000000005', '20000000-0000-0000-0000-000000000006', 'Ian John Thomas Bonne', 5, true, false, false, 'player', 'match-2-home-5'),
+    ('32000000-0000-0000-0000-000000000006', '33000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000006', 'Kennedy Mamonjisoa', 7, true, false, false, 'player', 'match-2-home-7'),
+    ('32000000-0000-0000-0000-000000000007', '33000000-0000-0000-0000-000000000007', '20000000-0000-0000-0000-000000000006', 'Henintsoa Fenohasina Rajaonarivelo', 10, true, false, false, 'player', 'match-2-home-10'),
+    ('32000000-0000-0000-0000-000000000008', '33000000-0000-0000-0000-000000000008', '20000000-0000-0000-0000-000000000006', 'Shamal Franco Rene Bonnelame', 15, true, false, false, 'player', 'match-2-home-15'),
+    ('32000000-0000-0000-0000-000000000009', '33000000-0000-0000-0000-000000000009', '20000000-0000-0000-0000-000000000006', 'Rafaelo Cecile', 17, true, false, false, 'player', 'match-2-home-17'),
+    ('32000000-0000-0000-0000-000000000010', '33000000-0000-0000-0000-000000000010', '20000000-0000-0000-0000-000000000006', 'Kevintom Machika', 23, true, false, false, 'player', 'match-2-home-23'),
+    ('32000000-0000-0000-0000-000000000011', '33000000-0000-0000-0000-000000000011', '20000000-0000-0000-0000-000000000006', 'Hubert Jean', 27, true, false, false, 'player', 'match-2-home-27'),
+    ('32000000-0000-0000-0000-000000000012', '33000000-0000-0000-0000-000000000012', '20000000-0000-0000-0000-000000000006', 'Laurent Hoareau', 3, false, false, false, 'player', 'match-2-home-3'),
+    ('32000000-0000-0000-0000-000000000013', '33000000-0000-0000-0000-000000000013', '20000000-0000-0000-0000-000000000006', 'Raj Anacoura', 9, false, false, false, 'player', 'match-2-home-9'),
+    ('32000000-0000-0000-0000-000000000014', '33000000-0000-0000-0000-000000000014', '20000000-0000-0000-0000-000000000006', 'Ron Perry Michel Barbe', 11, false, false, false, 'player', 'match-2-home-11'),
+    ('32000000-0000-0000-0000-000000000015', '33000000-0000-0000-0000-000000000015', '20000000-0000-0000-0000-000000000006', 'Joshua Kelly Juliette', 16, false, false, false, 'player', 'match-2-home-16'),
+    ('32000000-0000-0000-0000-000000000016', '33000000-0000-0000-0000-000000000016', '20000000-0000-0000-0000-000000000006', 'Anelka Deon Adela', 20, false, false, false, 'player', 'match-2-home-20'),
+    ('32000000-0000-0000-0000-000000000017', '33000000-0000-0000-0000-000000000017', '20000000-0000-0000-0000-000000000006', 'Wallace Mondon', 21, false, false, false, 'player', 'match-2-home-21'),
+    ('32000000-0000-0000-0000-000000000018', '33000000-0000-0000-0000-000000000018', '20000000-0000-0000-0000-000000000005', 'Jerome Fredy Dingwall', 1, true, false, true, 'player', 'match-2-away-1'),
+    ('32000000-0000-0000-0000-000000000019', '33000000-0000-0000-0000-000000000019', '20000000-0000-0000-0000-000000000005', 'Norvil Ronny Gaspard', 20, true, true, false, 'player', 'match-2-away-20'),
+    ('32000000-0000-0000-0000-000000000020', '33000000-0000-0000-0000-000000000020', '20000000-0000-0000-0000-000000000005', 'Dwayne Chad Dodo', 4, true, false, false, 'player', 'match-2-away-4'),
+    ('32000000-0000-0000-0000-000000000021', '33000000-0000-0000-0000-000000000021', '20000000-0000-0000-0000-000000000005', 'Sam Shane Ghislain Hallock', 6, true, false, false, 'player', 'match-2-away-6'),
+    ('32000000-0000-0000-0000-000000000022', '33000000-0000-0000-0000-000000000022', '20000000-0000-0000-0000-000000000005', 'Lucas Panayi', 8, true, false, false, 'player', 'match-2-away-8'),
+    ('32000000-0000-0000-0000-000000000023', '33000000-0000-0000-0000-000000000023', '20000000-0000-0000-0000-000000000005', 'Musa Njie', 9, true, false, false, 'player', 'match-2-away-9'),
+    ('32000000-0000-0000-0000-000000000024', '33000000-0000-0000-0000-000000000024', '20000000-0000-0000-0000-000000000005', 'Jimmitrie Sylva Randrianandrasana', 10, true, false, false, 'player', 'match-2-away-10'),
+    ('32000000-0000-0000-0000-000000000025', '33000000-0000-0000-0000-000000000025', '20000000-0000-0000-0000-000000000005', 'Fredo Rahelinadrasana', 11, true, false, false, 'player', 'match-2-away-11'),
+    ('32000000-0000-0000-0000-000000000026', '33000000-0000-0000-0000-000000000026', '20000000-0000-0000-0000-000000000005', 'Evariste Rakotondrahaja', 19, true, false, false, 'player', 'match-2-away-19'),
+    ('32000000-0000-0000-0000-000000000027', '33000000-0000-0000-0000-000000000027', '20000000-0000-0000-0000-000000000005', 'Christiano Louis', 22, true, false, false, 'player', 'match-2-away-22'),
+    ('32000000-0000-0000-0000-000000000028', '33000000-0000-0000-0000-000000000028', '20000000-0000-0000-0000-000000000005', 'O''Neil Pointe', 25, true, false, false, 'player', 'match-2-away-25'),
+    ('32000000-0000-0000-0000-000000000029', '33000000-0000-0000-0000-000000000029', '20000000-0000-0000-0000-000000000005', 'Lienal Joey Thierry Bibi', 2, false, false, false, 'player', 'match-2-away-2'),
+    ('32000000-0000-0000-0000-000000000030', '33000000-0000-0000-0000-000000000030', '20000000-0000-0000-0000-000000000005', 'Hakim Anaou', 3, false, false, false, 'player', 'match-2-away-3'),
+    ('32000000-0000-0000-0000-000000000031', '33000000-0000-0000-0000-000000000031', '20000000-0000-0000-0000-000000000005', 'Shane Yves Jean-Paul Philo', 13, false, false, false, 'player', 'match-2-away-13'),
+    ('32000000-0000-0000-0000-000000000032', '33000000-0000-0000-0000-000000000032', '20000000-0000-0000-0000-000000000005', 'Marcus Cliffton Labiche', 16, false, false, false, 'player', 'match-2-away-16'),
+    ('32000000-0000-0000-0000-000000000033', '33000000-0000-0000-0000-000000000033', '20000000-0000-0000-0000-000000000005', 'Tarick Sedgwick Maringo', 18, false, false, false, 'player', 'match-2-away-18'),
+    ('32000000-0000-0000-0000-000000000034', '33000000-0000-0000-0000-000000000034', '20000000-0000-0000-0000-000000000005', 'Monard Howard', 21, false, false, false, 'player', 'match-2-away-21'),
+    ('32000000-0000-0000-0000-000000000035', '33000000-0000-0000-0000-000000000035', '20000000-0000-0000-0000-000000000005', 'Marcus Camille', 24, false, false, false, 'player', 'match-2-away-24'),
+    ('32000000-0000-0000-0000-000000000036', '33000000-0000-0000-0000-000000000036', '20000000-0000-0000-0000-000000000005', 'Adrian Marie', 28, false, false, false, 'player', 'match-2-away-28'),
+    ('32000000-0000-0000-0000-000000000037', '33000000-0000-0000-0000-000000000037', '20000000-0000-0000-0000-000000000005', 'Majid Freminot', 30, false, false, false, 'player', 'match-2-away-30'),
+    ('32000000-0000-0000-0000-000000000038', NULL, NULL, 'Julio Agathine', NULL, false, false, false, 'official', 'match-2-assistant-referee-1'),
+    ('32000000-0000-0000-0000-000000000039', NULL, NULL, 'Jalil Antoine Mael Banane', NULL, false, false, false, 'official', 'match-2-assistant-referee-2'),
+    ('32000000-0000-0000-0000-000000000040', NULL, NULL, 'Alix Bonne', NULL, false, false, false, 'official', 'match-2-fourth-official'),
+    ('32000000-0000-0000-0000-000000000041', NULL, '20000000-0000-0000-0000-000000000006', 'Dereck Agathine', NULL, false, false, false, 'staff', 'match-2-st-michel-assistant-coach');
+
+INSERT INTO people (id, display_name, metadata)
+SELECT person_id, display_name,
+       jsonb_build_object('demo', true, 'source', 'seyfoot', 'source_external_id', external_id)
+FROM demo_playoff_people
+ON CONFLICT (id) DO UPDATE SET
+    display_name = EXCLUDED.display_name, metadata = EXCLUDED.metadata;
+
+INSERT INTO players (person_id, position, detailed_position)
+SELECT person_id,
+       CASE WHEN is_goalkeeper THEN 'goalkeeper' ELSE NULL END,
+       CASE WHEN is_goalkeeper THEN 'goalkeeper' ELSE NULL END
+FROM demo_playoff_people
+WHERE kind = 'player'
+ON CONFLICT (person_id) DO UPDATE SET
+    position = EXCLUDED.position, detailed_position = EXCLUDED.detailed_position;
+
+INSERT INTO team_memberships (id, team_id, person_id, role, shirt_number, starts_on)
+SELECT membership_id, team_id, person_id, 'player', shirt_number, NULL
+FROM demo_playoff_people
+WHERE kind = 'player'
+ON CONFLICT (id) DO UPDATE SET
+    team_id = EXCLUDED.team_id, person_id = EXCLUDED.person_id, role = EXCLUDED.role,
+    shirt_number = EXCLUDED.shirt_number, starts_on = EXCLUDED.starts_on,
+    ends_on = NULL;
 
 CREATE TEMP TABLE demo_lineup_players (
     person_id uuid PRIMARY KEY,
@@ -258,11 +344,27 @@ VALUES
      0, 2, 0, 1, NULL, NULL, NULL, NULL, 6218, '20000000-0000-0000-0000-000000000003', 1,
      digest('demo-finished-match-3-v1', 'sha256'), '{"demo":true}'::jsonb),
     ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000001',
-     '10000000-0000-0000-0000-000000000002', 'playoff', 'Premier League Playoff', 1, NULL, 1,
+     '10000000-0000-0000-0000-000000000002', 'play_off', 'Absa Premier League Play-Off', 1, NULL, 1,
      '2026-08-03T14:30:00Z', 'finished', 'full_time', 90, '10000000-0000-0000-0000-000000000004',
      '20000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000005',
-     4, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '20000000-0000-0000-0000-000000000006', 1,
-     digest('demo-st-michel-rovers-playoff-v2', 'sha256'), '{"demo":true}'::jsonb)
+     4, 3, 3, 3, 0, 0, NULL, NULL, NULL, '20000000-0000-0000-0000-000000000006', 1,
+     digest('demo-st-michel-rovers-playoff-v3', 'sha256'),
+     jsonb_build_object(
+         'demo', true,
+         'source', 'seyfoot',
+         'source_url', 'https://seyfoot.com/football/matchreports/season20252026/premierleague-play-off/MATCH_REPORT-02-St%20Michel%20SC%20Mens%20Senior-vs-Rovers%20FC%20Mens%20Senior.pdf',
+         'source_match_date', '2026-05-29T18:30:00+04:00',
+         'display_match_date', '2026-08-03T18:30:00+04:00',
+         'match_number', 2,
+         'matchday', '2 / 2',
+         'round', '1 / 1',
+         'duration_minutes', 114,
+         'report_generated_at', '2026-05-30T09:11:00+04:00',
+         'first_period', jsonb_build_object('started_at', '18:32', 'ended_at', '19:20', 'normal_minutes', 45, 'stoppage_minutes', 3),
+         'second_period', jsonb_build_object('started_at', '19:35', 'ended_at', '20:26', 'normal_minutes', 45, 'stoppage_minutes', 6),
+         'match_commissioner', 'Labrosse Jean-Claude Helgea',
+         'referee_assessor', 'Labrosse Jean-Claude Helgea'
+     ))
 ON CONFLICT (id) DO UPDATE SET
     league_id = EXCLUDED.league_id, season_id = EXCLUDED.season_id, stage = EXCLUDED.stage,
     round = EXCLUDED.round, round_sort = EXCLUDED.round_sort, group_name = EXCLUDED.group_name,
@@ -284,35 +386,133 @@ WHERE match_id IN (
 );
 
 INSERT INTO match_events (
-    id, match_id, sequence, period, minute, type, team_id, primary_person_id, secondary_person_id,
+    id, match_id, sequence, period, minute, stoppage_minute, type, team_id, primary_person_id, secondary_person_id,
     detail, home_score, away_score, metadata, occurred_at
 )
 VALUES
     ('41000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000001',
-     1, 'first_half', 0, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0, '{"demo":true}'::jsonb, '2026-08-01T12:00:00Z'),
+     1, 'first_half', 0, NULL, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0, '{"demo":true}'::jsonb, '2026-08-01T12:00:00Z'),
     ('41000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000001',
-     2, 'first_half', 34, 'goal', '20000000-0000-0000-0000-000000000001',
+     2, 'first_half', 34, NULL, 'goal', '20000000-0000-0000-0000-000000000001',
      '30000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000008', 'Right-footed shot; assisted by Mason Desaubin', 1, 0,
      '{"demo":true}'::jsonb, '2026-08-01T12:34:00Z'),
     ('41000000-0000-0000-0000-000000000005', '40000000-0000-0000-0000-000000000001',
-     3, 'second_half', 50, 'yellow_card', '20000000-0000-0000-0000-000000000002',
+     3, 'second_half', 50, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000002',
      '30000000-0000-0000-0000-000000000010', NULL, 'Unsporting behaviour', 1, 0,
      '{"card_reason":"unsporting_behaviour","demo":true}'::jsonb, '2026-08-01T13:05:00Z'),
     ('41000000-0000-0000-0000-000000000006', '40000000-0000-0000-0000-000000000001',
-     4, 'second_half', 62, 'substitution', '20000000-0000-0000-0000-000000000001',
+     4, 'second_half', 62, NULL, 'substitution', '20000000-0000-0000-0000-000000000001',
      '30000000-0000-0000-0000-000000000009', '30000000-0000-0000-0000-000000000001',
      'Liam Vidot replaces Alex Michel', 1, 0, '{"demo":true}'::jsonb, '2026-08-01T13:17:00Z'),
     ('41000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000003',
-     1, 'first_half', 0, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0, '{"demo":true}'::jsonb, '2026-07-31T16:00:00Z'),
+     1, 'first_half', 0, NULL, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0, '{"demo":true}'::jsonb, '2026-07-31T16:00:00Z'),
     ('41000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000003',
-     2, 'second_half', 90, 'full_time', NULL, NULL, NULL, 'Match finished', 2, 1,
+     2, 'second_half', 90, NULL, 'full_time', NULL, NULL, NULL, 'Match finished', 2, 1,
      '{"demo":true}'::jsonb, '2026-07-31T17:50:00Z'),
     ('41000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000006',
-     1, 'first_half', 0, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0,
-     '{"demo":true}'::jsonb, '2026-08-03T14:30:00Z'),
+     1, 'first_half', 0, NULL, 'kickoff', NULL, NULL, NULL, 'First period started', 0, 0,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T14:32:00Z'),
+    ('42000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000006',
+     2, 'first_half', 11, NULL, 'goal', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000025', NULL, 'Goal by Fredo Rahelinadrasana', 0, 1,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T14:43:00Z'),
+    ('42000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000006',
+     3, 'first_half', 12, NULL, 'goal', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000010', NULL, 'Goal by Kevintom Machika', 1, 1,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T14:44:00Z'),
+    ('42000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000006',
+     4, 'first_half', 13, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000021', NULL, 'Yellow card for Sam Shane Ghislain Hallock', 1, 1,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T14:45:00Z'),
+    ('42000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000006',
+     5, 'first_half', 18, NULL, 'goal', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000003', NULL, 'Goal by Sedraniaina Randriamahazo', 2, 1,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T14:50:00Z'),
+    ('42000000-0000-0000-0000-000000000005', '40000000-0000-0000-0000-000000000006',
+     6, 'first_half', 20, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000005', NULL, 'Yellow card for Ian John Thomas Bonne', 2, 1,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T14:52:00Z'),
+    ('42000000-0000-0000-0000-000000000006', '40000000-0000-0000-0000-000000000006',
+     7, 'first_half', 32, NULL, 'goal', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000027', NULL, 'Goal by Christiano Louis', 2, 2,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:04:00Z'),
+    ('42000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000006',
+     8, 'first_half', 35, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000024', NULL, 'Yellow card for Jimmitrie Sylva Randrianandrasana', 2, 2,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:07:00Z'),
+    ('42000000-0000-0000-0000-000000000008', '40000000-0000-0000-0000-000000000006',
+     9, 'first_half', 37, NULL, 'goal', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000004', NULL, 'Goal by Justin Clievy Stephen Riaze', 3, 2,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:09:00Z'),
+    ('42000000-0000-0000-0000-000000000009', '40000000-0000-0000-0000-000000000006',
+     10, 'first_half', 41, NULL, 'second_yellow', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000005', NULL, 'Ian John Thomas Bonne sent off after a second yellow card', 3, 2,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:13:00Z'),
+    ('42000000-0000-0000-0000-000000000010', '40000000-0000-0000-0000-000000000006',
+     11, 'first_half', 42, NULL, 'penalty_goal', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000026', NULL, 'Penalty scored by Evariste Rakotondrahaja', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:14:00Z'),
+    ('42000000-0000-0000-0000-000000000011', '40000000-0000-0000-0000-000000000006',
+     12, 'first_half', 42, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000001', NULL, 'Yellow card for Felino Jude Francois Razalo', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:14:00Z'),
+    ('42000000-0000-0000-0000-000000000012', '40000000-0000-0000-0000-000000000006',
+     13, 'half_time', 45, 3, 'half_time', NULL, NULL, NULL, 'Half-time: St Michel 3-3 Rovers', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:20:00Z'),
+    ('42000000-0000-0000-0000-000000000013', '40000000-0000-0000-0000-000000000006',
+     14, 'second_half', 46, NULL, 'second_half_started', NULL, NULL, NULL, 'Second period started', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:35:00Z'),
+    ('42000000-0000-0000-0000-000000000014', '40000000-0000-0000-0000-000000000006',
+     15, 'second_half', 52, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000007', NULL, 'Yellow card for Henintsoa Fenohasina Rajaonarivelo', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:42:00Z'),
+    ('42000000-0000-0000-0000-000000000015', '40000000-0000-0000-0000-000000000006',
+     16, 'second_half', 56, NULL, 'substitution', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000013', '32000000-0000-0000-0000-000000000010', 'Raj Anacoura replaces Kevintom Machika', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:46:00Z'),
+    ('42000000-0000-0000-0000-000000000016', '40000000-0000-0000-0000-000000000006',
+     17, 'second_half', 58, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000008', NULL, 'Yellow card for Shamal Franco Rene Bonnelame', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:48:00Z'),
+    ('42000000-0000-0000-0000-000000000017', '40000000-0000-0000-0000-000000000006',
+     18, 'second_half', 59, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000041', NULL, 'Yellow card for assistant coach Dereck Agathine', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:49:00Z'),
+    ('42000000-0000-0000-0000-000000000018', '40000000-0000-0000-0000-000000000006',
+     19, 'second_half', 62, NULL, 'substitution', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000029', '32000000-0000-0000-0000-000000000020', 'Lienal Joey Thierry Bibi replaces Dwayne Chad Dodo', 3, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:52:00Z'),
+    ('42000000-0000-0000-0000-000000000019', '40000000-0000-0000-0000-000000000006',
+     20, 'second_half', 68, NULL, 'goal', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000003', NULL, 'Winning goal by Sedraniaina Randriamahazo', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:58:00Z'),
+    ('42000000-0000-0000-0000-000000000020', '40000000-0000-0000-0000-000000000006',
+     21, 'second_half', 73, NULL, 'substitution', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000034', '32000000-0000-0000-0000-000000000027', 'Monard Howard replaces Christiano Louis', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T16:03:00Z'),
+    ('42000000-0000-0000-0000-000000000021', '40000000-0000-0000-0000-000000000006',
+     22, 'second_half', 82, NULL, 'substitution', '20000000-0000-0000-0000-000000000006',
+     '32000000-0000-0000-0000-000000000016', '32000000-0000-0000-0000-000000000008', 'Anelka Deon Adela replaces Shamal Franco Rene Bonnelame', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T16:12:00Z'),
+    ('42000000-0000-0000-0000-000000000022', '40000000-0000-0000-0000-000000000006',
+     23, 'second_half', 85, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000028', NULL, 'Yellow card for O''Neil Pointe', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T16:15:00Z'),
+    ('42000000-0000-0000-0000-000000000023', '40000000-0000-0000-0000-000000000006',
+     24, 'second_half', 87, NULL, 'substitution', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000033', '32000000-0000-0000-0000-000000000024', 'Tarick Sedgwick Maringo replaces Jimmitrie Sylva Randrianandrasana', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T16:17:00Z'),
+    ('42000000-0000-0000-0000-000000000024', '40000000-0000-0000-0000-000000000006',
+     25, 'second_half', 87, NULL, 'substitution', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000030', '32000000-0000-0000-0000-000000000023', 'Hakim Anaou replaces Musa Njie', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T16:17:00Z'),
+    ('42000000-0000-0000-0000-000000000025', '40000000-0000-0000-0000-000000000006',
+     26, 'second_half', 90, 3, 'yellow_card', '20000000-0000-0000-0000-000000000005',
+     '32000000-0000-0000-0000-000000000022', NULL, 'Yellow card for Lucas Panayi', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T16:23:00Z'),
     ('41000000-0000-0000-0000-000000000008', '40000000-0000-0000-0000-000000000006',
-     2, 'second_half', 90, 'full_time', NULL, NULL, NULL, 'Match finished', 4, 3,
-     '{"demo":true}'::jsonb, '2026-08-03T16:20:00Z');
+     27, 'full_time', 90, 6, 'full_time', NULL, NULL, NULL, 'Full-time: St Michel 4-3 Rovers', 4, 3,
+     '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T16:26:00Z');
 
 INSERT INTO season_teams (season_id, team_id)
 SELECT '10000000-0000-0000-0000-000000000002', id
@@ -322,7 +522,11 @@ ON CONFLICT (season_id, team_id) DO NOTHING;
 INSERT INTO match_team_info (match_id, team_id, formation, coach_id, metadata)
 VALUES
     ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', '4-3-3', '30000000-0000-0000-0000-000000000005', '{"demo":true}'),
-    ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '4-2-3-1', '30000000-0000-0000-0000-000000000006', '{"demo":true}')
+    ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '4-2-3-1', '30000000-0000-0000-0000-000000000006', '{"demo":true}'),
+    ('40000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000006', NULL, NULL,
+     '{"demo":true,"source":"seyfoot","staff":[{"role":"assistant_coach","name":"Alex Michel Nibourette"},{"role":"assistant_coach","name":"Dereck Agathine"},{"role":"team_manager","name":"Neoriche Adrienne"},{"role":"team_manager","name":"Perry Nourrice"},{"role":"goalkeeper_coach","name":"Eric Nelson Sopha"},{"role":"physiotherapist","name":"Andrick Savy"},{"role":"team_medic","name":"Juan Michel"}]}'::jsonb),
+    ('40000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000005', NULL, NULL,
+     '{"demo":true,"source":"seyfoot","staff":[{"role":"team_official","name":"Juel Ray Ah-kong"},{"role":"team_official","name":"Chinombo McGiven Shandele"},{"role":"team_official","name":"Rupert Pool"},{"role":"team_manager","name":"Donald Richard Monnaie"},{"role":"physiotherapist","name":"Veronica Johnette Edna Simeon"}]}'::jsonb)
 ON CONFLICT (match_id, team_id) DO UPDATE SET
     formation = EXCLUDED.formation, coach_id = EXCLUDED.coach_id, metadata = EXCLUDED.metadata;
 
@@ -361,10 +565,39 @@ ON CONFLICT (match_id, team_id, person_id) DO UPDATE SET
     shirt_number = EXCLUDED.shirt_number, is_starter = EXCLUDED.is_starter,
     is_captain = EXCLUDED.is_captain, metadata = EXCLUDED.metadata;
 
+DELETE FROM match_lineups
+WHERE match_id = '40000000-0000-0000-0000-000000000006';
+
+INSERT INTO match_lineups (
+    match_id, team_id, person_id, position, grid_position, shirt_number,
+    is_starter, is_captain, metadata
+)
+SELECT
+    '40000000-0000-0000-0000-000000000006', team_id, person_id,
+    CASE WHEN is_goalkeeper THEN 'goalkeeper' ELSE NULL END,
+    NULL, shirt_number, is_starter, is_captain,
+    jsonb_build_object('demo', true, 'source', 'seyfoot', 'goalkeeper', is_goalkeeper)
+FROM demo_playoff_people
+WHERE kind = 'player'
+ON CONFLICT (match_id, team_id, person_id) DO UPDATE SET
+    position = EXCLUDED.position, grid_position = EXCLUDED.grid_position,
+    shirt_number = EXCLUDED.shirt_number, is_starter = EXCLUDED.is_starter,
+    is_captain = EXCLUDED.is_captain, metadata = EXCLUDED.metadata;
+
+DELETE FROM match_officials
+WHERE match_id = '40000000-0000-0000-0000-000000000006';
+
 INSERT INTO match_officials (match_id, person_id, role, metadata)
 VALUES
     ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000007', 'referee', '{"demo":true}'),
-    ('40000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000042', 'referee', '{"demo":true}')
+    ('40000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000042', 'referee',
+     '{"demo":true,"source":"seyfoot","source_name":"Arissol Noris"}'),
+    ('40000000-0000-0000-0000-000000000006', '32000000-0000-0000-0000-000000000038', 'assistant_referee',
+     '{"demo":true,"source":"seyfoot","position":1,"source_name":"Agathine Julio"}'),
+    ('40000000-0000-0000-0000-000000000006', '32000000-0000-0000-0000-000000000039', 'assistant_referee',
+     '{"demo":true,"source":"seyfoot","position":2,"source_name":"Banane Jalil Antoine Mael"}'),
+    ('40000000-0000-0000-0000-000000000006', '32000000-0000-0000-0000-000000000040', 'fourth_official',
+     '{"demo":true,"source":"seyfoot","source_name":"Bonne Alix"}')
 ON CONFLICT (match_id, person_id, role) DO UPDATE SET metadata = EXCLUDED.metadata;
 
 INSERT INTO player_match_statistics (
@@ -389,6 +622,73 @@ ON CONFLICT (match_id, person_id) DO UPDATE SET
     tackles = EXCLUDED.tackles, saves = EXCLUDED.saves,
     yellow_cards = EXCLUDED.yellow_cards, red_cards = EXCLUDED.red_cards,
     rating = EXCLUDED.rating, metadata = EXCLUDED.metadata;
+
+INSERT INTO player_match_statistics (
+    match_id, team_id, person_id, started, minutes_played,
+    goals, yellow_cards, red_cards, metadata
+)
+SELECT
+    '40000000-0000-0000-0000-000000000006', team_id, person_id, is_starter,
+    CASE person_id
+        WHEN '32000000-0000-0000-0000-000000000005' THEN 41
+        WHEN '32000000-0000-0000-0000-000000000008' THEN 82
+        WHEN '32000000-0000-0000-0000-000000000010' THEN 56
+        WHEN '32000000-0000-0000-0000-000000000013' THEN 34
+        WHEN '32000000-0000-0000-0000-000000000016' THEN 8
+        WHEN '32000000-0000-0000-0000-000000000020' THEN 62
+        WHEN '32000000-0000-0000-0000-000000000023' THEN 87
+        WHEN '32000000-0000-0000-0000-000000000024' THEN 87
+        WHEN '32000000-0000-0000-0000-000000000027' THEN 73
+        WHEN '32000000-0000-0000-0000-000000000029' THEN 28
+        WHEN '32000000-0000-0000-0000-000000000030' THEN 3
+        WHEN '32000000-0000-0000-0000-000000000033' THEN 3
+        WHEN '32000000-0000-0000-0000-000000000034' THEN 17
+        WHEN '32000000-0000-0000-0000-000000000001' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000002' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000003' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000004' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000006' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000007' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000009' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000011' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000018' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000019' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000021' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000022' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000025' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000026' THEN 90
+        WHEN '32000000-0000-0000-0000-000000000028' THEN 90
+        ELSE 0
+    END,
+    CASE person_id
+        WHEN '32000000-0000-0000-0000-000000000003' THEN 2
+        WHEN '32000000-0000-0000-0000-000000000004' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000010' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000025' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000026' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000027' THEN 1
+        ELSE 0
+    END,
+    CASE person_id
+        WHEN '32000000-0000-0000-0000-000000000005' THEN 2
+        WHEN '32000000-0000-0000-0000-000000000001' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000007' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000008' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000021' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000022' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000024' THEN 1
+        WHEN '32000000-0000-0000-0000-000000000028' THEN 1
+        ELSE 0
+    END,
+    CASE WHEN person_id = '32000000-0000-0000-0000-000000000005' THEN 1 ELSE 0 END,
+    '{"demo":true,"source":"seyfoot","documented_fields_only":true}'::jsonb
+FROM demo_playoff_people
+WHERE kind = 'player'
+ON CONFLICT (match_id, person_id) DO UPDATE SET
+    team_id = EXCLUDED.team_id, started = EXCLUDED.started,
+    minutes_played = EXCLUDED.minutes_played, goals = EXCLUDED.goals,
+    yellow_cards = EXCLUDED.yellow_cards, red_cards = EXCLUDED.red_cards,
+    metadata = EXCLUDED.metadata;
 
 UPDATE player_match_statistics
 SET passes_completed = CASE person_id
@@ -715,6 +1015,28 @@ VALUES
 ON CONFLICT (provider, entity_type, external_id) DO UPDATE SET
     entity_id = EXCLUDED.entity_id, updated_at = now();
 
+INSERT INTO external_ids (entity_type, entity_id, provider, external_id)
+VALUES
+    ('venue', '10000000-0000-0000-0000-000000000004', 'seyfoot', 'stad-linite-roche-caiman'),
+    ('team', '20000000-0000-0000-0000-000000000005', 'seyfoot', 'rovers-fc-mens-senior'),
+    ('team', '20000000-0000-0000-0000-000000000006', 'seyfoot', 'st-michel-sc-mens-senior'),
+    ('match', '40000000-0000-0000-0000-000000000006', 'seyfoot', 'premier-league-play-off-match-2')
+ON CONFLICT (provider, entity_type, external_id) DO UPDATE SET
+    entity_id = EXCLUDED.entity_id, updated_at = now();
+
+INSERT INTO external_ids (entity_type, entity_id, provider, external_id)
+SELECT 'person', person_id, 'seyfoot', external_id
+FROM demo_playoff_people
+ON CONFLICT (provider, entity_type, external_id) DO UPDATE SET
+    entity_id = EXCLUDED.entity_id, updated_at = now();
+
+INSERT INTO external_ids (entity_type, entity_id, provider, external_id)
+SELECT 'match_event', id, 'seyfoot', 'premier-league-play-off-match-2-event-' || sequence
+FROM match_events
+WHERE match_id = '40000000-0000-0000-0000-000000000006'
+ON CONFLICT (provider, entity_type, external_id) DO UPDATE SET
+    entity_id = EXCLUDED.entity_id, updated_at = now();
+
 INSERT INTO news_articles (
     id, source, external_id, slug, title, summary, body_markdown,
     hero_image_url, hero_image_alt, author_name, category, featured,
@@ -754,13 +1076,13 @@ VALUES
     (
         '50000000-0000-0000-0000-000000000004', 'demo', 'st-michel-rovers-playoff-report',
         'st-michel-edge-rovers-in-playoff', 'St Michel edge Rovers in playoff',
-        'St Michel defeated Rovers 4–3 at Stad Linite in the Premier League playoff.',
-        E'## St Michel win seven-goal playoff\n\nSt Michel defeated Rovers 4–3 at Stad Linite on Monday, August 3, 2026. Noris Arissol refereed the Premier League playoff.\n\n### At a glance\n\n- St Michel 4–3 Rovers\n- Result: Full time\n- Venue: Stad Linite\n- Kickoff: 6:30 PM',
+        'St Michel defeated Rovers 4-3 at Stad Linite after a seven-goal Premier League play-off.',
+        E'## St Michel win seven-goal play-off\n\nSt Michel defeated Rovers 4-3 at Stad Linite on Monday, August 3, 2026. The match kicked off at 6:30 PM Seychelles time.\n\n### Six goals before half-time\n\nFredo Rahelinadrasana put Rovers ahead in the 11th minute, but Kevintom Machika levelled one minute later. Sedraniaina Randriamahazo made it 2-1 before Christiano Louis equalised for Rovers. Justin Clievy Stephen Riaze restored St Michel''s lead in the 37th minute. Ian John Thomas Bonne was then sent off for a second yellow card, and Evariste Rakotondrahaja converted the resulting 42nd-minute penalty to send the teams in level at 3-3.\n\n### Ten-man St Michel find the winner\n\nSt Michel played the second half with ten men, but Randriamahazo scored his second goal in the 68th minute to secure the 4-3 victory.\n\n### Match details\n\n- Half-time: 3-3\n- Second half: 1-0\n- Venue: Stad Linite, Roche Caiman\n- Referee: Noris Arissol\n- Match duration: 1 hour 54 minutes\n\n[Official Seychelles Football Federation match report](https://seyfoot.com/football/matchreports/season20252026/premierleague-play-off/MATCH_REPORT-02-St%20Michel%20SC%20Mens%20Senior-vs-Rovers%20FC%20Mens%20Senior.pdf)',
         NULL, NULL, 'SSB Newsroom', 'match_report', false,
         '10000000-0000-0000-0000-000000000001',
         '20000000-0000-0000-0000-000000000006',
         '40000000-0000-0000-0000-000000000006',
-        'published', '2026-08-03T16:30:00Z', digest('demo-news-st-michel-rovers-playoff-v2', 'sha256')
+        'published', '2026-08-03T00:00:00Z', digest('demo-news-st-michel-rovers-playoff-v3', 'sha256')
     )
 ON CONFLICT (source, external_id) DO UPDATE SET
     slug = EXCLUDED.slug, title = EXCLUDED.title, summary = EXCLUDED.summary,

@@ -72,7 +72,7 @@ ssb push-worker               deliver queued APNs/ActivityKit and Android FCM me
 
 ## Demo data
 
-`make seed-demo` creates one league, one current season, two venues, six teams, 38 players, two coaches, two officials, standings with home/away splits, two complete 18-player matchday squads (11 starters and seven substitutes per side), player memberships and advanced statistics, one player trait cohort, heatmap, shot map and valuation, six matches (live, scheduled, finished, and playoff), sample odds/broadcast/weather coverage, three published news articles, and one private draft. Running it again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
+`make seed-demo` creates one league, one current season, two venues, six teams, 75 players, two coaches, five officials, standings with home/away splits, two complete 18-player matchday squads, the official St Michel and Rovers play-off squads, player memberships and advanced statistics, one player trait cohort, heatmap, shot map and valuation, six matches (live, scheduled, finished, and play-off), sample odds/broadcast/weather coverage, three published news articles, and one private draft. The St Michel 4-3 Rovers fixture includes all 37 listed players, four match officials, team staff, and the 27-event match timeline from the federation report while retaining August 3, 2026 as its public date. Running the seed again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
 
 Useful fixture IDs:
 
