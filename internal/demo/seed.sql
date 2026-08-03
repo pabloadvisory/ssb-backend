@@ -259,10 +259,10 @@ VALUES
      digest('demo-finished-match-3-v1', 'sha256'), '{"demo":true}'::jsonb),
     ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000001',
      '10000000-0000-0000-0000-000000000002', 'playoff', 'Premier League Playoff', 1, NULL, 1,
-     '2026-05-29T14:30:00Z', 'finished', 'full_time', 90, '10000000-0000-0000-0000-000000000004',
+     '2026-08-03T14:30:00Z', 'finished', 'full_time', 90, '10000000-0000-0000-0000-000000000004',
      '20000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000005',
      4, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '20000000-0000-0000-0000-000000000006', 1,
-     digest('demo-st-michel-rovers-playoff-v1', 'sha256'), '{"demo":true}'::jsonb)
+     digest('demo-st-michel-rovers-playoff-v2', 'sha256'), '{"demo":true}'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     league_id = EXCLUDED.league_id, season_id = EXCLUDED.season_id, stage = EXCLUDED.stage,
     round = EXCLUDED.round, round_sort = EXCLUDED.round_sort, group_name = EXCLUDED.group_name,
@@ -309,10 +309,10 @@ VALUES
      '{"demo":true}'::jsonb, '2026-07-31T17:50:00Z'),
     ('41000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000006',
      1, 'first_half', 0, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0,
-     '{"demo":true}'::jsonb, '2026-05-29T14:30:00Z'),
+     '{"demo":true}'::jsonb, '2026-08-03T14:30:00Z'),
     ('41000000-0000-0000-0000-000000000008', '40000000-0000-0000-0000-000000000006',
      2, 'second_half', 90, 'full_time', NULL, NULL, NULL, 'Match finished', 4, 3,
-     '{"demo":true}'::jsonb, '2026-05-29T16:20:00Z');
+     '{"demo":true}'::jsonb, '2026-08-03T16:20:00Z');
 
 INSERT INTO season_teams (season_id, team_id)
 SELECT '10000000-0000-0000-0000-000000000002', id
@@ -755,12 +755,12 @@ VALUES
         '50000000-0000-0000-0000-000000000004', 'demo', 'st-michel-rovers-playoff-report',
         'st-michel-edge-rovers-in-playoff', 'St Michel edge Rovers in playoff',
         'St Michel defeated Rovers 4–3 at Stad Linite in the Premier League playoff.',
-        E'## St Michel win seven-goal playoff\n\nSt Michel defeated Rovers 4–3 at Stad Linite on Friday, May 29, 2026. Noris Arissol refereed the Premier League playoff.\n\n### At a glance\n\n- St Michel 4–3 Rovers\n- Result: Full time\n- Venue: Stad Linite\n- Kickoff: 6:30 PM',
+        E'## St Michel win seven-goal playoff\n\nSt Michel defeated Rovers 4–3 at Stad Linite on Monday, August 3, 2026. Noris Arissol refereed the Premier League playoff.\n\n### At a glance\n\n- St Michel 4–3 Rovers\n- Result: Full time\n- Venue: Stad Linite\n- Kickoff: 6:30 PM',
         NULL, NULL, 'SSB Newsroom', 'match_report', false,
         '10000000-0000-0000-0000-000000000001',
         '20000000-0000-0000-0000-000000000006',
         '40000000-0000-0000-0000-000000000006',
-        'published', '2026-05-29T16:30:00Z', digest('demo-news-st-michel-rovers-playoff-v1', 'sha256')
+        'published', '2026-08-03T16:30:00Z', digest('demo-news-st-michel-rovers-playoff-v2', 'sha256')
     )
 ON CONFLICT (source, external_id) DO UPDATE SET
     slug = EXCLUDED.slug, title = EXCLUDED.title, summary = EXCLUDED.summary,
