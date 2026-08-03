@@ -476,7 +476,7 @@ VALUES
      '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:48:00Z'),
     ('42000000-0000-0000-0000-000000000017', '40000000-0000-0000-0000-000000000006',
      18, 'second_half', 59, NULL, 'yellow_card', '20000000-0000-0000-0000-000000000006',
-     '32000000-0000-0000-0000-000000000041', NULL, 'Yellow card for assistant coach Dereck Agathine', 3, 3,
+     NULL, NULL, 'Yellow card for assistant coach Dereck Agathine', 3, 3,
      '{"demo":true,"source":"seyfoot"}'::jsonb, '2026-08-03T15:49:00Z'),
     ('42000000-0000-0000-0000-000000000018', '40000000-0000-0000-0000-000000000006',
      19, 'second_half', 62, NULL, 'substitution', '20000000-0000-0000-0000-000000000005',
@@ -575,8 +575,39 @@ INSERT INTO match_lineups (
 SELECT
     '40000000-0000-0000-0000-000000000006', team_id, person_id,
     CASE WHEN is_goalkeeper THEN 'goalkeeper' ELSE NULL END,
-    NULL, shirt_number, is_starter, is_captain,
-    jsonb_build_object('demo', true, 'source', 'seyfoot', 'goalkeeper', is_goalkeeper)
+    CASE person_id
+        WHEN '32000000-0000-0000-0000-000000000001' THEN '1:1'
+        WHEN '32000000-0000-0000-0000-000000000002' THEN '2:1'
+        WHEN '32000000-0000-0000-0000-000000000003' THEN '2:2'
+        WHEN '32000000-0000-0000-0000-000000000004' THEN '2:3'
+        WHEN '32000000-0000-0000-0000-000000000005' THEN '2:4'
+        WHEN '32000000-0000-0000-0000-000000000006' THEN '3:1'
+        WHEN '32000000-0000-0000-0000-000000000007' THEN '3:2'
+        WHEN '32000000-0000-0000-0000-000000000008' THEN '3:3'
+        WHEN '32000000-0000-0000-0000-000000000009' THEN '3:4'
+        WHEN '32000000-0000-0000-0000-000000000010' THEN '4:1'
+        WHEN '32000000-0000-0000-0000-000000000011' THEN '4:2'
+        WHEN '32000000-0000-0000-0000-000000000018' THEN '1:1'
+        WHEN '32000000-0000-0000-0000-000000000019' THEN '2:1'
+        WHEN '32000000-0000-0000-0000-000000000020' THEN '2:2'
+        WHEN '32000000-0000-0000-0000-000000000021' THEN '2:3'
+        WHEN '32000000-0000-0000-0000-000000000022' THEN '2:4'
+        WHEN '32000000-0000-0000-0000-000000000023' THEN '3:1'
+        WHEN '32000000-0000-0000-0000-000000000024' THEN '3:2'
+        WHEN '32000000-0000-0000-0000-000000000025' THEN '3:3'
+        WHEN '32000000-0000-0000-0000-000000000026' THEN '3:4'
+        WHEN '32000000-0000-0000-0000-000000000027' THEN '4:1'
+        WHEN '32000000-0000-0000-0000-000000000028' THEN '4:2'
+        ELSE NULL
+    END,
+    shirt_number, is_starter, is_captain,
+    jsonb_build_object(
+        'demo', true,
+        'source', 'seyfoot',
+        'goalkeeper', is_goalkeeper,
+        'layout', CASE WHEN is_starter THEN 'neutral_4_4_2' ELSE NULL END,
+        'source_positions_available', false
+    )
 FROM demo_playoff_people
 WHERE kind = 'player'
 ON CONFLICT (match_id, team_id, person_id) DO UPDATE SET
@@ -840,7 +871,13 @@ VALUES
     ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001',
      54.30, 12, 5, 4, 3, 8, 4, 6, 451, 386, 85.59, 11, 2, 1, 0, 4, 17, 8, 12, 1.420, '{"demo":true}'),
     ('40000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002',
-     45.70, 9, 4, 3, 2, 5, 4, 4, 382, 308, 80.63, 14, 1, 2, 0, 4, 19, 7, 15, 0.860, '{"demo":true}')
+     45.70, 9, 4, 3, 2, 5, 4, 4, 382, 308, 80.63, 14, 1, 2, 0, 4, 19, 7, 15, 0.860, '{"demo":true}'),
+    ('40000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000006',
+     53.20, 17, 9, 5, 3, 12, 5, 7, 428, 353, 82.48, 17, 2, 5, 1, 4, 18, 9, 14, 3.410,
+     '{"demo":true,"synthetic":true,"source":"demo_estimate","report_backed_fields":["yellow_cards","red_cards"],"note":"Synthetic team totals for app demonstration"}'),
+    ('40000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000005',
+     46.80, 13, 7, 4, 2, 9, 4, 5, 376, 294, 78.19, 15, 3, 4, 0, 5, 20, 11, 17, 2.620,
+     '{"demo":true,"synthetic":true,"source":"demo_estimate","report_backed_fields":["yellow_cards","red_cards"],"note":"Synthetic team totals for app demonstration"}')
 ON CONFLICT (match_id, team_id) DO UPDATE SET
     possession = EXCLUDED.possession, shots = EXCLUDED.shots,
     shots_on_target = EXCLUDED.shots_on_target, shots_off_target = EXCLUDED.shots_off_target,

@@ -161,6 +161,11 @@ func TestPostgresIntegration(t *testing.T) {
 			len(playoffLineups.Away.Starters) != 11 || len(playoffLineups.Away.Substitutes) != 9 {
 			t.Fatalf("unexpected seeded play-off squads: %+v", playoffLineups)
 		}
+		for _, player := range append(playoffLineups.Home.Starters, playoffLineups.Away.Starters...) {
+			if player.GridPosition == nil || *player.GridPosition == "" {
+				t.Fatalf("seeded play-off starter has no presentation grid: %+v", player)
+			}
+		}
 		playoffOfficials, err := footballService.ListMatchOfficials(ctx, playoffMatchID)
 		if err != nil {
 			t.Fatal(err)
@@ -174,6 +179,9 @@ func TestPostgresIntegration(t *testing.T) {
 		}
 		var goals, substitutions int
 		for _, event := range playoffEvents {
+			if event.Detail != nil && *event.Detail == "Yellow card for assistant coach Dereck Agathine" && event.PrimaryPersonID != nil {
+				t.Fatalf("staff booking must not be resolved through the player endpoint: %+v", event)
+			}
 			if event.Type == football.EventGoal || event.Type == football.EventPenaltyGoal {
 				goals++
 			}
@@ -183,6 +191,19 @@ func TestPostgresIntegration(t *testing.T) {
 		}
 		if len(playoffEvents) != 27 || goals != 7 || substitutions != 6 {
 			t.Fatalf("unexpected seeded play-off timeline: events=%d goals=%d substitutions=%d", len(playoffEvents), goals, substitutions)
+		}
+		playoffStatistics, err := footballService.GetMatchStatistics(ctx, playoffMatchID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if playoffStatistics.Home.Totals == nil || playoffStatistics.Away.Totals == nil ||
+			playoffStatistics.Home.Totals.Shots == nil || *playoffStatistics.Home.Totals.Shots != 17 ||
+			playoffStatistics.Home.Totals.PassesCompleted == nil || *playoffStatistics.Home.Totals.PassesCompleted != 353 ||
+			playoffStatistics.Home.Totals.YellowCards == nil || *playoffStatistics.Home.Totals.YellowCards != 5 ||
+			playoffStatistics.Home.Totals.RedCards == nil || *playoffStatistics.Home.Totals.RedCards != 1 ||
+			playoffStatistics.Away.Totals.ShotsOnTarget == nil || *playoffStatistics.Away.Totals.ShotsOnTarget != 7 ||
+			playoffStatistics.Away.Totals.YellowCards == nil || *playoffStatistics.Away.Totals.YellowCards != 4 {
+			t.Fatalf("unexpected seeded play-off team statistics: %+v", playoffStatistics)
 		}
 
 		results, err := footballService.Search(ctx, football.SearchFilter{Query: "victoria", Limit: 20})
