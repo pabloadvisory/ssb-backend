@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -123,6 +125,7 @@ func testHandlerWithAbuse(store *fakeStore, ingestKey string, abuse AbuseControl
 	return New(
 		service.NewFootball(store), service.NewNews(&fakeNewsStore{}), nil,
 		healthyDatabase{}, realtime.NewHub(), logger, observability.NopMetrics{}, ingestKey, "editorial-secret", abuse,
+		nil,
 	).Handler()
 }
 
@@ -138,6 +141,43 @@ func TestLivenessIncludesRequestID(t *testing.T) {
 	}
 	if response.Header().Get("X-Request-ID") == "" {
 		t.Fatal("expected X-Request-ID response header")
+	}
+}
+
+func TestPublicAssetsServesFilesWithoutDirectoryListing(t *testing.T) {
+	t.Parallel()
+
+	directory := t.TempDir()
+	logosDirectory := filepath.Join(directory, "team-logos")
+	if err := os.Mkdir(logosDirectory, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	logo := []byte("\x89PNG\r\n\x1a\n")
+	if err := os.WriteFile(filepath.Join(logosDirectory, "rovers.png"), logo, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	handler := publicAssetsHandler(http.Dir(directory))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/assets/team-logos/rovers.png", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", response.Code)
+	}
+	if response.Header().Get("Content-Type") != "image/png" {
+		t.Fatalf("expected image/png, got %q", response.Header().Get("Content-Type"))
+	}
+	if response.Header().Get("Cache-Control") != "public, max-age=3600" {
+		t.Fatalf("unexpected cache policy %q", response.Header().Get("Cache-Control"))
+	}
+	if response.Body.String() != string(logo) {
+		t.Fatal("served asset does not match source file")
+	}
+
+	directoryResponse := httptest.NewRecorder()
+	handler.ServeHTTP(directoryResponse, httptest.NewRequest(http.MethodGet, "/assets/team-logos/", nil))
+	if directoryResponse.Code != http.StatusNotFound {
+		t.Fatalf("expected directory request to return 404, got %d", directoryResponse.Code)
 	}
 }
 
@@ -197,6 +237,7 @@ func TestNewsListReturnsSummaryPageWithOpaqueCursor(t *testing.T) {
 	handler := New(
 		service.NewFootball(&fakeStore{}), service.NewNews(newsStore), nil,
 		healthyDatabase{}, realtime.NewHub(), logger, observability.NopMetrics{}, "secret", "editorial-secret", AbuseControls{},
+		nil,
 	).Handler()
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/v1/news?limit=1", nil))
@@ -335,6 +376,7 @@ func TestMatchWebSocketDoesNotLoseUpdateDuringSnapshotRead(t *testing.T) {
 	handler := New(
 		service.NewFootball(store), service.NewNews(&fakeNewsStore{}), nil,
 		healthyDatabase{}, hub, logger, observability.NopMetrics{}, "secret", "editorial-secret", AbuseControls{},
+		nil,
 	).Handler()
 	server := httptest.NewServer(handler)
 	defer server.Close()

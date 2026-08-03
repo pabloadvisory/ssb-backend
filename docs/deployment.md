@@ -21,6 +21,7 @@ The mobile client base URL is `https://ssb.ibuildnothing.com`. Client code appen
 
 ```text
 /srv/ssb-backend                         Git checkout of main
+/srv/ssb-backend-data/assets             Persistent public assets, kept outside Git
 /etc/ssb/backend.env                    root-only production secrets
 /etc/cloudflared-ssb/config.yml         dedicated tunnel configuration
 /etc/cloudflared-ssb/<tunnel-id>.json   dedicated tunnel credentials
@@ -29,6 +30,8 @@ The mobile client base URL is `https://ssb.ibuildnothing.com`. Client code appen
 ```
 
 PostgreSQL is reachable only on the private Compose network. The API is reachable on the VPS only through loopback and is published through its dedicated Cloudflare Tunnel.
+
+Team logos and other public files are stored outside the repository under `/srv/ssb-backend-data/assets`. The directory is mounted read-only into the API container and served at `https://ssb.ibuildnothing.com/assets/...`.
 
 ## Deploy a pushed change
 

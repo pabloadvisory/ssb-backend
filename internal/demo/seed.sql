@@ -23,11 +23,16 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO venues (
     id, name, city, country_code, address, latitude, longitude, capacity, surface, timezone, metadata
 )
-VALUES (
-    '10000000-0000-0000-0000-000000000003', 'Demo National Stadium', 'Victoria', 'SC',
-    'Stad Popiler, Roche Caiman', -4.6362, 55.4708,
-    10000, 'grass', 'Indian/Mahe', '{"demo":true}'::jsonb
-)
+VALUES
+    (
+        '10000000-0000-0000-0000-000000000003', 'Demo National Stadium', 'Victoria', 'SC',
+        'Stad Popiler, Roche Caiman', -4.6362, 55.4708,
+        10000, 'grass', 'Indian/Mahe', '{"demo":true}'::jsonb
+    ),
+    (
+        '10000000-0000-0000-0000-000000000004', 'Stad Linite', NULL, 'SC',
+        NULL, NULL, NULL, NULL, NULL, 'Indian/Mahe', '{"demo":true}'::jsonb
+    )
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name, city = EXCLUDED.city, country_code = EXCLUDED.country_code,
     address = EXCLUDED.address, latitude = EXCLUDED.latitude, longitude = EXCLUDED.longitude,
@@ -36,21 +41,27 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO teams (
     id, name, short_name, code, country_code, founded_year, national, venue_id,
-    primary_color, secondary_color, metadata
+    logo_url, primary_color, secondary_color, metadata
 )
 VALUES
     ('20000000-0000-0000-0000-000000000001', 'Victoria United', 'Victoria', 'VIC', 'SC', 1995, false,
-     '10000000-0000-0000-0000-000000000003', '#0057B8', '#FFFFFF', '{"demo":true}'::jsonb),
+     '10000000-0000-0000-0000-000000000003', NULL, '#0057B8', '#FFFFFF', '{"demo":true}'::jsonb),
     ('20000000-0000-0000-0000-000000000002', 'Mahé City', 'Mahé', 'MAH', 'SC', 1998, false,
-     '10000000-0000-0000-0000-000000000003', '#D71920', '#FFFFFF', '{"demo":true}'::jsonb),
+     '10000000-0000-0000-0000-000000000003', NULL, '#D71920', '#FFFFFF', '{"demo":true}'::jsonb),
     ('20000000-0000-0000-0000-000000000003', 'Praslin Rovers', 'Praslin', 'PRA', 'SC', 2001, false,
-     '10000000-0000-0000-0000-000000000003', '#009A44', '#FFD700', '{"demo":true}'::jsonb),
+     '10000000-0000-0000-0000-000000000003', NULL, '#009A44', '#FFD700', '{"demo":true}'::jsonb),
     ('20000000-0000-0000-0000-000000000004', 'La Digue Athletic', 'La Digue', 'LDA', 'SC', 2003, false,
-     '10000000-0000-0000-0000-000000000003', '#6A1B9A', '#FFFFFF', '{"demo":true}'::jsonb)
+     '10000000-0000-0000-0000-000000000003', NULL, '#6A1B9A', '#FFFFFF', '{"demo":true}'::jsonb),
+    ('20000000-0000-0000-0000-000000000005', 'Rovers', 'Rovers', 'ROV', 'SC', NULL, false,
+     '10000000-0000-0000-0000-000000000004', 'https://ssb.ibuildnothing.com/assets/team-logos/rovers.png',
+     '#F7D117', '#111111', '{"demo":true}'::jsonb),
+    ('20000000-0000-0000-0000-000000000006', 'St Michel', 'St Michel', 'STM', 'SC', NULL, false,
+     '10000000-0000-0000-0000-000000000004', 'https://ssb.ibuildnothing.com/assets/team-logos/st-michel.png',
+     '#EF1745', '#111111', '{"demo":true}'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name, short_name = EXCLUDED.short_name, code = EXCLUDED.code,
     country_code = EXCLUDED.country_code, founded_year = EXCLUDED.founded_year,
-    national = EXCLUDED.national, venue_id = EXCLUDED.venue_id,
+    national = EXCLUDED.national, venue_id = EXCLUDED.venue_id, logo_url = EXCLUDED.logo_url,
     primary_color = EXCLUDED.primary_color, secondary_color = EXCLUDED.secondary_color,
     metadata = EXCLUDED.metadata;
 
@@ -124,7 +135,8 @@ VALUES
     ('30000000-0000-0000-0000-000000000008', 'Mason Desaubin', 'Mason', 'Desaubin', '2001-08-11', 'SC', '{"demo":true}'::jsonb),
     ('30000000-0000-0000-0000-000000000009', 'Liam Vidot', 'Liam', 'Vidot', '2002-05-19', 'SC', '{"demo":true}'::jsonb),
     ('30000000-0000-0000-0000-000000000010', 'Noah Sinon', 'Noah', 'Sinon', '1999-12-02', 'SC', '{"demo":true}'::jsonb),
-    ('30000000-0000-0000-0000-000000000011', 'Ethan Julie', 'Ethan', 'Julie', '2003-07-23', 'SC', '{"demo":true}'::jsonb)
+    ('30000000-0000-0000-0000-000000000011', 'Ethan Julie', 'Ethan', 'Julie', '2003-07-23', 'SC', '{"demo":true}'::jsonb),
+    ('30000000-0000-0000-0000-000000000042', 'Noris Arissol', 'Noris', 'Arissol', NULL, 'SC', '{"demo":true}'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     display_name = EXCLUDED.display_name, first_name = EXCLUDED.first_name,
     last_name = EXCLUDED.last_name, birth_date = EXCLUDED.birth_date,
@@ -244,7 +256,13 @@ VALUES
      '2026-03-15T14:00:00Z', 'finished', 'full_time', 90, '10000000-0000-0000-0000-000000000003',
      '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003',
      0, 2, 0, 1, NULL, NULL, NULL, NULL, 6218, '20000000-0000-0000-0000-000000000003', 1,
-     digest('demo-finished-match-3-v1', 'sha256'), '{"demo":true}'::jsonb)
+     digest('demo-finished-match-3-v1', 'sha256'), '{"demo":true}'::jsonb),
+    ('40000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000001',
+     '10000000-0000-0000-0000-000000000002', 'playoff', 'Premier League Playoff', 1, NULL, 1,
+     '2026-05-29T14:30:00Z', 'finished', 'full_time', 90, '10000000-0000-0000-0000-000000000004',
+     '20000000-0000-0000-0000-000000000006', '20000000-0000-0000-0000-000000000005',
+     4, 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '20000000-0000-0000-0000-000000000006', 1,
+     digest('demo-st-michel-rovers-playoff-v1', 'sha256'), '{"demo":true}'::jsonb)
 ON CONFLICT (id) DO UPDATE SET
     league_id = EXCLUDED.league_id, season_id = EXCLUDED.season_id, stage = EXCLUDED.stage,
     round = EXCLUDED.round, round_sort = EXCLUDED.round_sort, group_name = EXCLUDED.group_name,
@@ -259,7 +277,11 @@ ON CONFLICT (id) DO UPDATE SET
     source_hash = EXCLUDED.source_hash, metadata = EXCLUDED.metadata, updated_at = now();
 
 DELETE FROM match_events
-WHERE match_id IN ('40000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000003');
+WHERE match_id IN (
+    '40000000-0000-0000-0000-000000000001',
+    '40000000-0000-0000-0000-000000000003',
+    '40000000-0000-0000-0000-000000000006'
+);
 
 INSERT INTO match_events (
     id, match_id, sequence, period, minute, type, team_id, primary_person_id, secondary_person_id,
@@ -284,7 +306,13 @@ VALUES
      1, 'first_half', 0, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0, '{"demo":true}'::jsonb, '2026-07-31T16:00:00Z'),
     ('41000000-0000-0000-0000-000000000004', '40000000-0000-0000-0000-000000000003',
      2, 'second_half', 90, 'full_time', NULL, NULL, NULL, 'Match finished', 2, 1,
-     '{"demo":true}'::jsonb, '2026-07-31T17:50:00Z');
+     '{"demo":true}'::jsonb, '2026-07-31T17:50:00Z'),
+    ('41000000-0000-0000-0000-000000000007', '40000000-0000-0000-0000-000000000006',
+     1, 'first_half', 0, 'kickoff', NULL, NULL, NULL, 'Match started', 0, 0,
+     '{"demo":true}'::jsonb, '2026-05-29T14:30:00Z'),
+    ('41000000-0000-0000-0000-000000000008', '40000000-0000-0000-0000-000000000006',
+     2, 'second_half', 90, 'full_time', NULL, NULL, NULL, 'Match finished', 4, 3,
+     '{"demo":true}'::jsonb, '2026-05-29T16:20:00Z');
 
 INSERT INTO season_teams (season_id, team_id)
 SELECT '10000000-0000-0000-0000-000000000002', id
@@ -334,7 +362,9 @@ ON CONFLICT (match_id, team_id, person_id) DO UPDATE SET
     is_captain = EXCLUDED.is_captain, metadata = EXCLUDED.metadata;
 
 INSERT INTO match_officials (match_id, person_id, role, metadata)
-VALUES ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000007', 'referee', '{"demo":true}')
+VALUES
+    ('40000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000007', 'referee', '{"demo":true}'),
+    ('40000000-0000-0000-0000-000000000006', '30000000-0000-0000-0000-000000000042', 'referee', '{"demo":true}')
 ON CONFLICT (match_id, person_id, role) DO UPDATE SET metadata = EXCLUDED.metadata;
 
 INSERT INTO player_match_statistics (
@@ -649,10 +679,13 @@ VALUES
     ('league', '10000000-0000-0000-0000-000000000001', 'demo', 'seychelles-premier-demo'),
     ('season', '10000000-0000-0000-0000-000000000002', 'demo', 'season-2026'),
     ('venue', '10000000-0000-0000-0000-000000000003', 'demo', 'national-stadium-demo'),
+    ('venue', '10000000-0000-0000-0000-000000000004', 'demo', 'stad-linite'),
     ('team', '20000000-0000-0000-0000-000000000001', 'demo', 'victoria-united'),
     ('team', '20000000-0000-0000-0000-000000000002', 'demo', 'mahe-city'),
     ('team', '20000000-0000-0000-0000-000000000003', 'demo', 'praslin-rovers'),
     ('team', '20000000-0000-0000-0000-000000000004', 'demo', 'la-digue-athletic'),
+    ('team', '20000000-0000-0000-0000-000000000005', 'demo', 'rovers'),
+    ('team', '20000000-0000-0000-0000-000000000006', 'demo', 'st-michel'),
     ('person', '30000000-0000-0000-0000-000000000001', 'demo', 'alex-michel'),
     ('person', '30000000-0000-0000-0000-000000000002', 'demo', 'daniel-rose'),
     ('person', '30000000-0000-0000-0000-000000000003', 'demo', 'marc-hoareau'),
@@ -664,17 +697,21 @@ VALUES
     ('person', '30000000-0000-0000-0000-000000000009', 'demo', 'liam-vidot'),
     ('person', '30000000-0000-0000-0000-000000000010', 'demo', 'noah-sinon'),
     ('person', '30000000-0000-0000-0000-000000000011', 'demo', 'ethan-julie'),
+    ('person', '30000000-0000-0000-0000-000000000042', 'demo', 'referee-noris-arissol'),
     ('match', '40000000-0000-0000-0000-000000000001', 'demo', 'live-match-1'),
     ('match', '40000000-0000-0000-0000-000000000002', 'demo', 'scheduled-match-1'),
     ('match', '40000000-0000-0000-0000-000000000003', 'demo', 'finished-match-1'),
     ('match', '40000000-0000-0000-0000-000000000004', 'demo', 'finished-match-2'),
     ('match', '40000000-0000-0000-0000-000000000005', 'demo', 'finished-match-3'),
+    ('match', '40000000-0000-0000-0000-000000000006', 'demo', 'st-michel-rovers-playoff'),
     ('match_event', '41000000-0000-0000-0000-000000000001', 'demo', 'live-kickoff'),
     ('match_event', '41000000-0000-0000-0000-000000000002', 'demo', 'live-goal-1'),
     ('match_event', '41000000-0000-0000-0000-000000000005', 'demo', 'live-yellow-1'),
     ('match_event', '41000000-0000-0000-0000-000000000006', 'demo', 'live-substitution-1'),
     ('match_event', '41000000-0000-0000-0000-000000000003', 'demo', 'finished-kickoff'),
-    ('match_event', '41000000-0000-0000-0000-000000000004', 'demo', 'finished-full-time')
+    ('match_event', '41000000-0000-0000-0000-000000000004', 'demo', 'finished-full-time'),
+    ('match_event', '41000000-0000-0000-0000-000000000007', 'demo', 'st-michel-rovers-kickoff'),
+    ('match_event', '41000000-0000-0000-0000-000000000008', 'demo', 'st-michel-rovers-full-time')
 ON CONFLICT (provider, entity_type, external_id) DO UPDATE SET
     entity_id = EXCLUDED.entity_id, updated_at = now();
 
@@ -713,6 +750,17 @@ VALUES
         'This draft must never appear in the public feed.',
         NULL, NULL, 'SSB Newsroom', 'announcement', false,
         NULL, NULL, NULL, 'draft', NULL, digest('demo-news-transfer-draft-v1', 'sha256')
+    ),
+    (
+        '50000000-0000-0000-0000-000000000004', 'demo', 'st-michel-rovers-playoff-report',
+        'st-michel-edge-rovers-in-playoff', 'St Michel edge Rovers in playoff',
+        'St Michel defeated Rovers 4–3 at Stad Linite in the Premier League playoff.',
+        E'## St Michel win seven-goal playoff\n\nSt Michel defeated Rovers 4–3 at Stad Linite on Friday, May 29, 2026. Noris Arissol refereed the Premier League playoff.\n\n### At a glance\n\n- St Michel 4–3 Rovers\n- Result: Full time\n- Venue: Stad Linite\n- Kickoff: 6:30 PM',
+        NULL, NULL, 'SSB Newsroom', 'match_report', false,
+        '10000000-0000-0000-0000-000000000001',
+        '20000000-0000-0000-0000-000000000006',
+        '40000000-0000-0000-0000-000000000006',
+        'published', '2026-05-29T16:30:00Z', digest('demo-news-st-michel-rovers-playoff-v1', 'sha256')
     )
 ON CONFLICT (source, external_id) DO UPDATE SET
     slug = EXCLUDED.slug, title = EXCLUDED.title, summary = EXCLUDED.summary,

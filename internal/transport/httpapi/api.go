@@ -39,6 +39,7 @@ type API struct {
 	editorialKey  string
 	abuse         AbuseControls
 	metrics       observability.Metrics
+	publicAssets  http.FileSystem
 }
 
 type AbuseControls struct {
@@ -47,7 +48,7 @@ type AbuseControls struct {
 	RealtimeConnections *httpx.ConnectionLimiter
 }
 
-func New(footballService *service.Football, newsService *service.News, notificationService *service.Notifications, database databasePinger, hub *realtime.Hub, logger *slog.Logger, metrics observability.Metrics, ingestKey, editorialKey string, abuse AbuseControls) *API {
+func New(footballService *service.Football, newsService *service.News, notificationService *service.Notifications, database databasePinger, hub *realtime.Hub, logger *slog.Logger, metrics observability.Metrics, ingestKey, editorialKey string, abuse AbuseControls, publicAssets http.FileSystem) *API {
 	if metrics == nil {
 		metrics = observability.NopMetrics{}
 	}
@@ -63,6 +64,7 @@ func New(footballService *service.Football, newsService *service.News, notificat
 	return &API{
 		football: footballService, news: newsService, notifications: notificationService, database: database,
 		hub: hub, logger: logger, ingestKey: ingestKey, editorialKey: editorialKey, abuse: abuse, metrics: metrics,
+		publicAssets: publicAssets,
 	}
 }
 
@@ -70,6 +72,9 @@ func (api *API) Handler() http.Handler {
 	router := http.NewServeMux()
 	router.HandleFunc("GET /health/live", api.live)
 	router.HandleFunc("GET /health/ready", api.ready)
+	if api.publicAssets != nil {
+		router.Handle("GET /assets/", publicAssetsHandler(api.publicAssets))
+	}
 	router.HandleFunc("GET /v1/leagues", api.listLeagues)
 	router.HandleFunc("GET /v1/leagues/{id}", api.getLeague)
 	router.HandleFunc("GET /v1/leagues/{id}/seasons", api.listLeagueSeasons)
@@ -98,6 +103,18 @@ func (api *API) Handler() http.Handler {
 		httpx.SecurityHeaders,
 		httpx.AccessLog(api.logger, api.metrics),
 	)
+}
+
+func publicAssetsHandler(fileSystem http.FileSystem) http.Handler {
+	files := http.StripPrefix("/assets/", http.FileServer(fileSystem))
+	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.URL.Path == "/assets/" || strings.HasSuffix(request.URL.Path, "/") {
+			http.NotFound(writer, request)
+			return
+		}
+		writer.Header().Set("Cache-Control", "public, max-age=3600")
+		files.ServeHTTP(writer, request)
+	})
 }
 
 type page[T any] struct {

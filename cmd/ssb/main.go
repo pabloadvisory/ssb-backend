@@ -217,7 +217,11 @@ func serve(ctx context.Context, cfg config.Config, logger *slog.Logger) error {
 			cfg.HTTP.RealtimeConnectionsPerIP, cfg.HTTP.AbuseTrackedIPLimit,
 		),
 	}
-	api := httpapi.New(footballService, newsService, notificationService, pool, hub, logger, metrics, cfg.IngestKey, cfg.EditorialKey, abuse)
+	var publicAssets http.FileSystem
+	if cfg.HTTP.PublicAssetsDirectory != "" {
+		publicAssets = http.Dir(cfg.HTTP.PublicAssetsDirectory)
+	}
+	api := httpapi.New(footballService, newsService, notificationService, pool, hub, logger, metrics, cfg.IngestKey, cfg.EditorialKey, abuse, publicAssets)
 	server := &http.Server{
 		Addr:              cfg.HTTP.Address,
 		Handler:           api.Handler(),

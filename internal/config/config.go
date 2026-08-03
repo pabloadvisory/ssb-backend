@@ -26,6 +26,7 @@ type Config struct {
 
 type HTTP struct {
 	Address                   string
+	PublicAssetsDirectory     string
 	ReadHeaderTimeout         time.Duration
 	ReadTimeout               time.Duration
 	WriteTimeout              time.Duration
@@ -90,6 +91,7 @@ func Load(command string) (Config, error) {
 
 	cfg.Environment = env("SSB_ENV", "development")
 	cfg.HTTP.Address = env("SSB_HTTP_ADDR", ":8080")
+	cfg.HTTP.PublicAssetsDirectory = strings.TrimSpace(os.Getenv("SSB_PUBLIC_ASSETS_DIR"))
 	cfg.Database.URL = strings.TrimSpace(os.Getenv("SSB_DATABASE_URL"))
 	cfg.IngestKey = os.Getenv("SSB_INGEST_API_KEY")
 	cfg.EditorialKey = os.Getenv("SSB_EDITORIAL_API_KEY")

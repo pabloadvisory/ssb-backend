@@ -4,6 +4,7 @@ set -eu
 APP_DIR=${SSB_APP_DIR:-/srv/ssb-backend}
 ENV_FILE=${SSB_ENV_FILE:-/etc/ssb/backend.env}
 COMPOSE_FILE=${APP_DIR}/deploy/docker-compose.production.yml
+ASSETS_DIR=/srv/ssb-backend-data/assets
 
 if [ ! -d "${APP_DIR}/.git" ]; then
   echo "SSB repository is missing at ${APP_DIR}" >&2
@@ -16,6 +17,8 @@ if [ ! -r "${ENV_FILE}" ]; then
 fi
 
 cd "${APP_DIR}"
+
+install -d -m 0755 "${ASSETS_DIR}" "${ASSETS_DIR}/team-logos"
 
 git pull --ff-only origin main
 

@@ -72,7 +72,7 @@ ssb push-worker               deliver queued APNs/ActivityKit and Android FCM me
 
 ## Demo data
 
-`make seed-demo` creates one league, one current season, one coordinate-backed venue, four teams, 38 players, two coaches, one official, standings with home/away splits, two complete 18-player matchday squads (11 starters and seven substitutes per side), player memberships and advanced statistics, one player trait cohort, heatmap, shot map and valuation, five matches (live, scheduled, and finished), sample odds/broadcast/weather coverage, two published news articles, and one private draft. Running it again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
+`make seed-demo` creates one league, one current season, two venues, six teams, 38 players, two coaches, two officials, standings with home/away splits, two complete 18-player matchday squads (11 starters and seven substitutes per side), player memberships and advanced statistics, one player trait cohort, heatmap, shot map and valuation, six matches (live, scheduled, finished, and playoff), sample odds/broadcast/weather coverage, three published news articles, and one private draft. Running it again resets the same fixed-ID fixtures without creating duplicates. The command refuses to run when `SSB_ENV=production`.
 
 Useful fixture IDs:
 
